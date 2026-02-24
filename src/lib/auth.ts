@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyPassword } from '@/lib/utils/password';
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: 'Credentials',
