@@ -13,8 +13,13 @@ import {
 } from '@mui/material';
 import { useState } from 'react';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import MenuIcon from '@mui/icons-material/Menu';
 
-export default function Navbar() {
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const { data: session } = useSession();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -33,13 +38,22 @@ export default function Navbar() {
   return (
     <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
       <Toolbar>
+        <IconButton
+          color="inherit"
+          edge="start"
+          onClick={onMenuClick}
+          sx={{ mr: 2, display: { sm: 'none' } }}
+        >
+          <MenuIcon />
+        </IconButton>
+
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           HR 시스템
         </Typography>
 
         {session && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
               {session.user.name} ({session.user.role === 'ADMIN' ? '관리자' : '직원'})
             </Typography>
 
@@ -56,6 +70,11 @@ export default function Navbar() {
             >
               <MenuItem disabled>
                 <Typography variant="body2">{session.user.email}</Typography>
+              </MenuItem>
+              <MenuItem disabled sx={{ display: { sm: 'none' } }}>
+                <Typography variant="body2">
+                  {session.user.name} ({session.user.role === 'ADMIN' ? '관리자' : '직원'})
+                </Typography>
               </MenuItem>
               <MenuItem onClick={handleLogout}>로그아웃</MenuItem>
             </Menu>

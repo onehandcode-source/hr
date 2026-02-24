@@ -88,7 +88,12 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
 
@@ -98,18 +103,8 @@ export default function Sidebar() {
     item.roles?.includes(session.user.role)
   );
 
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-        },
-      }}
-    >
+  const drawerContent = (
+    <>
       <Toolbar />
       <Divider />
       <List>
@@ -119,6 +114,7 @@ export default function Sidebar() {
               component={Link}
               href={item.href}
               selected={pathname === item.href}
+              onClick={onClose}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
@@ -126,6 +122,38 @@ export default function Sidebar() {
           </ListItem>
         ))}
       </List>
-    </Drawer>
+    </>
+  );
+
+  return (
+    <>
+      {/* 모바일: temporary drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* 데스크탑: permanent drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', sm: 'block' },
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' },
+        }}
+        open
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 }
