@@ -22,9 +22,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           ml: { sm: `${drawerWidth}px` },
           width: { xs: '100%', sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
+          bgcolor: 'background.default',
         }}
       >
-        <Toolbar />
+        <Toolbar sx={{ minHeight: { xs: '56px !important', sm: '64px !important' } }} />
         {children}
       </Box>
     </Box>
