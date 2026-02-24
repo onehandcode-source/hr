@@ -1,0 +1,167 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// 사용자 테이블
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  password      String
+  name          String
+  role          Role          @default(EMPLOYEE)
+  department    String?
+  position      String?
+  hireDate      DateTime      @default(now())
+  totalLeaves   Int           @default(15) // 연간 총 연차
+  usedLeaves    Float         @default(0)  // 사용한 연차
+
+  // Relations
+  leaveRequests AnnualLeave[]
+  evaluations   Evaluation[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+// 연차 신청 테이블
+model AnnualLeave {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startDate   DateTime
+  endDate     DateTime
+  days        Float       // 0.5, 1, 1.5 등 (반차 지원)
+  reason      String
+  status      LeaveStatus @default(PENDING)
+
+  // 승인/거부 정보
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNote  String?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+// 평가 항목 테이블
+model EvaluationItem {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  category    String            // 예: "업무능력", "협업능력", "리더십"
+  maxScore    Int               @default(5)
+  weight      Float             @default(1.0) // 가중치
+  isActive    Boolean           @default(true)
+  order       Int               @default(0)
+
+  // Relations
+  evaluations EvaluationScore[]
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+// 직원별 평가 테이블
+model Evaluation {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  period      String            // "2024-Q1", "2024-H1" 등
+  evaluatedBy String            // 평가자 ID
+  status      String            @default("DRAFT") // DRAFT, COMPLETED
+
+  totalScore  Float?
+  comment     String?
+
+  // Relations
+  scores      EvaluationScore[]
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([userId, period])
+  @@index([userId])
+  @@index([period])
+}
+
+// 평가 점수 상세
+model EvaluationScore {
+  id              String          @id @default(cuid())
+  evaluationId    String
+  evaluation      Evaluation      @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  itemId          String
+  item            EvaluationItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  score           Float
+  comment         String?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([evaluationId, itemId])
+  @@index([evaluationId])
+}
+
+// NextAuth 세션 테이블
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
