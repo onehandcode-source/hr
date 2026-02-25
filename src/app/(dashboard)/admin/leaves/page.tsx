@@ -24,6 +24,13 @@ import {
 } from '@mui/material';
 import { formatDateKorean } from '@/lib/utils/date';
 
+const LEAVE_TYPE_LABELS: Record<string, string> = {
+  ANNUAL: '연차',
+  HALF: '반차',
+  SICK: '병가',
+  SPECIAL: '경조사',
+};
+
 interface LeaveRequest {
   id: string;
   startDate: string;
@@ -31,6 +38,7 @@ interface LeaveRequest {
   days: number;
   reason: string;
   status: string;
+  leaveType: string;
   createdAt: string;
   user: {
     name: string;
@@ -145,6 +153,7 @@ export default function AdminLeavesPage() {
                 <TableRow>
                   <TableCell>직원명</TableCell>
                   <TableCell>부서/직급</TableCell>
+                  <TableCell>종류</TableCell>
                   <TableCell>시작일</TableCell>
                   <TableCell>종료일</TableCell>
                   <TableCell>일수</TableCell>
@@ -156,7 +165,7 @@ export default function AdminLeavesPage() {
               <TableBody>
                 {leaves && leaves.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">
+                    <TableCell colSpan={9} align="center">
                       대기 중인 연차 신청이 없습니다.
                     </TableCell>
                   </TableRow>
@@ -166,6 +175,9 @@ export default function AdminLeavesPage() {
                       <TableCell>{leave.user.name}</TableCell>
                       <TableCell>
                         {leave.user.department} / {leave.user.position}
+                      </TableCell>
+                      <TableCell>
+                        {LEAVE_TYPE_LABELS[leave.leaveType] || leave.leaveType}
                       </TableCell>
                       <TableCell>{formatDateKorean(new Date(leave.startDate))}</TableCell>
                       <TableCell>{formatDateKorean(new Date(leave.endDate))}</TableCell>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { updateLeaveRequestStatus, getLeaveRequest } from '@/lib/db/leaves';
+import { updateLeaveRequestStatus, getLeaveRequest, cancelLeaveRequest } from '@/lib/db/leaves';
 import { LeaveStatus } from '@prisma/client';
 
 export async function PATCH(
@@ -31,6 +31,8 @@ export async function PATCH(
       );
     }
 
+    const leaveBeforeUpdate = await getLeaveRequest(id);
+
     const leave = await updateLeaveRequestStatus(
       id,
       status as LeaveStatus,
@@ -38,12 +40,67 @@ export async function PATCH(
       reviewNote
     );
 
+    // 직원에게 알림
+    try {
+      const { createNotification } = await import('@/lib/db/notifications');
+      if (leaveBeforeUpdate) {
+        const statusText = status === 'APPROVED' ? '승인' : '거부';
+        await createNotification({
+          userId: leaveBeforeUpdate.userId,
+          title: `연차 신청 ${statusText}`,
+          message: `연차 신청이 ${statusText}되었습니다.${reviewNote ? ` (${reviewNote})` : ''}`,
+          type: 'LEAVE_STATUS',
+          relatedId: id,
+        });
+      }
+    } catch (notifError) {
+      console.error('Notification error:', notifError);
+    }
+
     return NextResponse.json(leave);
   } catch (error) {
     console.error('Error updating leave status:', error);
     return NextResponse.json(
       { error: '연차 상태 업데이트 중 오류가 발생했습니다' },
       { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json({ error: '인증되지 않았습니다' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const leave = await cancelLeaveRequest(id, session.user.id);
+
+    // 관리자에게 알림
+    try {
+      const { createNotificationsForAdmins } = await import('@/lib/db/notifications');
+      await createNotificationsForAdmins({
+        title: '연차 신청 취소',
+        message: `${session.user.name}님이 연차 신청을 취소했습니다.`,
+        type: 'LEAVE_CANCEL',
+        relatedId: id,
+      });
+    } catch (notifError) {
+      console.error('Notification error:', notifError);
+    }
+
+    return NextResponse.json(leave);
+  } catch (error: any) {
+    console.error('Error cancelling leave:', error);
+    return NextResponse.json(
+      { error: error.message || '연차 취소 중 오류가 발생했습니다' },
+      { status: error.message?.includes('권한') ? 403 : 400 }
     );
   }
 }

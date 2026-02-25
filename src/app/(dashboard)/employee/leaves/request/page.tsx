@@ -25,21 +25,30 @@ import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/ko';
 import { calculateWorkdays } from '@/lib/utils/date';
 
+type LeaveType = 'ANNUAL' | 'HALF' | 'SICK' | 'SPECIAL';
+
+const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
+  ANNUAL: '연차',
+  HALF: '반차',
+  SICK: '병가',
+  SPECIAL: '경조사',
+};
+
 export default function LeaveRequestPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
 
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
-  const [leaveType, setLeaveType] = useState<'full' | 'half'>('full');
+  const [leaveType, setLeaveType] = useState<LeaveType>('ANNUAL');
   const [reason, setReason] = useState('');
 
   // 반차 선택 시 종료일을 시작일과 동일하게 설정
   useEffect(() => {
-    if (leaveType === 'half' && startDate && !endDate) {
+    if (leaveType === 'HALF' && startDate) {
       setEndDate(startDate);
     }
-  }, [leaveType, startDate, endDate]);
+  }, [leaveType, startDate]);
 
   // 사용자 연차 잔여 조회
   const { data: leaveBalance } = useQuery({
@@ -72,6 +81,7 @@ export default function LeaveRequestPage() {
       setStartDate(null);
       setEndDate(null);
       setReason('');
+      setLeaveType('ANNUAL');
     },
     onError: (err: Error) => {
       toast.error(err.message);
@@ -81,23 +91,24 @@ export default function LeaveRequestPage() {
   const calculateDays = () => {
     if (!startDate || !endDate) return 0;
 
-    if (leaveType === 'half') {
+    if (leaveType === 'HALF') {
       return 0.5;
     }
 
-    const days = calculateWorkdays(startDate.toDate(), endDate.toDate());
-    return days;
+    return calculateWorkdays(startDate.toDate(), endDate.toDate());
   };
+
+  const isHalfDay = leaveType === 'HALF';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!startDate || !endDate) {
-      toast.error('시작일과 종료일을 선택해주세요.');
+    if (!startDate || (!isHalfDay && !endDate)) {
+      toast.error('날짜를 선택해주세요.');
       return;
     }
 
-    if (startDate.isAfter(endDate)) {
+    if (!isHalfDay && startDate.isAfter(endDate!)) {
       toast.error('종료일은 시작일 이후여야 합니다.');
       return;
     }
@@ -108,12 +119,14 @@ export default function LeaveRequestPage() {
     }
 
     const days = calculateDays();
+    const finalEndDate = isHalfDay ? startDate : endDate!;
 
     createMutation.mutate({
       startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      endDate: finalEndDate.toISOString(),
       days,
       reason,
+      leaveType,
     });
   };
 
@@ -140,10 +153,16 @@ export default function LeaveRequestPage() {
                   <RadioGroup
                     row
                     value={leaveType}
-                    onChange={(e) => setLeaveType(e.target.value as 'full' | 'half')}
+                    onChange={(e) => setLeaveType(e.target.value as LeaveType)}
                   >
-                    <FormControlLabel value="full" control={<Radio />} label="연차" />
-                    <FormControlLabel value="half" control={<Radio />} label="반차" />
+                    {(Object.keys(LEAVE_TYPE_LABELS) as LeaveType[]).map((type) => (
+                      <FormControlLabel
+                        key={type}
+                        value={type}
+                        control={<Radio />}
+                        label={LEAVE_TYPE_LABELS[type]}
+                      />
+                    ))}
                   </RadioGroup>
                 </FormControl>
 
@@ -159,7 +178,7 @@ export default function LeaveRequestPage() {
                   }}
                 />
 
-                {leaveType === 'full' && (
+                {!isHalfDay && (
                   <DatePicker
                     label="종료일"
                     value={endDate}
@@ -174,7 +193,7 @@ export default function LeaveRequestPage() {
                   />
                 )}
 
-                {startDate && (leaveType === 'half' || endDate) && (
+                {startDate && (isHalfDay || endDate) && (
                   <Alert severity="info">
                     신청 일수: {calculateDays()}일
                   </Alert>

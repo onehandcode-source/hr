@@ -16,6 +16,7 @@ import { useState } from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import LogoutIcon from '@mui/icons-material/Logout';
+import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -35,7 +36,8 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
       position="fixed"
       elevation={0}
       sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        width: { sm: 'calc(100% - 240px)' },
+        ml: { sm: '240px' },
         bgcolor: 'rgba(248, 250, 252, 0.85)',
         backdropFilter: 'blur(12px)',
         borderBottom: '1px solid #e2e8f0',
@@ -53,6 +55,9 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         </IconButton>
 
         <Box sx={{ flexGrow: 1 }} />
+
+        {/* 알림 벨 */}
+        {session && <NotificationBell />}
 
         {/* 우측 유저 영역 */}
         {session && (

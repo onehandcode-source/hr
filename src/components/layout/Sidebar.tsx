@@ -22,6 +22,8 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import CategoryIcon from '@mui/icons-material/Category';
+import PeopleIcon from '@mui/icons-material/People';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const drawerWidth = 240;
 
@@ -35,11 +37,12 @@ interface MenuItem {
   text: string;
   href: string;
   icon: React.ReactNode;
-  roles?: string[];
+  roles?: string[]; // undefined = 모든 역할
 }
 
 const menuItems: MenuItem[] = [
   { text: '대시보드', href: '/admin', icon: <DashboardIcon fontSize="small" />, roles: ['ADMIN'] },
+  { text: '직원 관리', href: '/admin/employees', icon: <PeopleIcon fontSize="small" />, roles: ['ADMIN'] },
   { text: '연차 관리', href: '/admin/leaves', icon: <EventNoteIcon fontSize="small" />, roles: ['ADMIN'] },
   { text: '평가 항목', href: '/admin/evaluations/items', icon: <CategoryIcon fontSize="small" />, roles: ['ADMIN'] },
   { text: '직원 평가', href: '/admin/evaluations', icon: <AssessmentIcon fontSize="small" />, roles: ['ADMIN'] },
@@ -48,6 +51,8 @@ const menuItems: MenuItem[] = [
   { text: '연차 신청', href: '/employee/leaves/request', icon: <AddCircleOutlineIcon fontSize="small" />, roles: ['EMPLOYEE'] },
   { text: '연차 달력', href: '/employee/leaves/calendar', icon: <CalendarTodayIcon fontSize="small" />, roles: ['EMPLOYEE'] },
   { text: '내 평가', href: '/employee/evaluations', icon: <ChecklistIcon fontSize="small" />, roles: ['EMPLOYEE'] },
+  // 공통 메뉴 (roles 미지정 = 모든 역할)
+  { text: '프로필', href: '/profile', icon: <AccountCircleIcon fontSize="small" /> },
 ];
 
 interface SidebarProps {
@@ -62,7 +67,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   if (!session) return null;
 
   const filteredMenuItems = menuItems.filter((item) =>
-    item.roles?.includes(session.user.role)
+    item.roles === undefined || item.roles.includes(session.user.role)
   );
 
   const drawerContent = (

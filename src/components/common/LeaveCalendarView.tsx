@@ -87,6 +87,7 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [calendarView, setCalendarView] = useState<(typeof Views)[keyof typeof Views]>(Views.MONTH);
   const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
 
   const deptColorMap = useMemo(() => buildDeptColorMap(leaves), [leaves]);
@@ -179,9 +180,10 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
             endAccessor="end"
             date={calendarDate}
             onNavigate={(date) => setCalendarDate(date)}
+            view={calendarView}
+            onView={(view) => setCalendarView(view)}
             messages={CALENDAR_MESSAGES}
-            defaultView={Views.MONTH}
-            views={[Views.MONTH, Views.WEEK, Views.AGENDA]}
+            views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             eventPropGetter={eventStyleGetter}
             onSelectEvent={handleCalendarEventSelect}
             style={{ height: '100%' }}

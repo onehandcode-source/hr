@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getLeaveRequests, createLeaveRequest } from '@/lib/db/leaves';
-import { LeaveStatus } from '@prisma/client';
+import { LeaveStatus, LeaveType } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { startDate, endDate, days, reason } = body;
+    const { startDate, endDate, days, reason, leaveType } = body;
 
     if (!startDate || !endDate || !days || !reason) {
       return NextResponse.json(
@@ -65,7 +65,21 @@ export async function POST(request: NextRequest) {
       endDate: new Date(endDate),
       days: parseFloat(days),
       reason,
+      leaveType: (leaveType as LeaveType) ?? 'ANNUAL',
     });
+
+    // 관리자에게 알림 (실패해도 메인 로직에 영향 없음)
+    try {
+      const { createNotificationsForAdmins } = await import('@/lib/db/notifications');
+      await createNotificationsForAdmins({
+        title: '새 연차 신청',
+        message: `${session.user.name}님이 연차를 신청했습니다.`,
+        type: 'LEAVE_REQUEST',
+        relatedId: leave.id,
+      });
+    } catch (notifError) {
+      console.error('Notification error:', notifError);
+    }
 
     return NextResponse.json(leave, { status: 201 });
   } catch (error) {

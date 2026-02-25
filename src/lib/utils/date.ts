@@ -1,23 +1,23 @@
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import { HOLIDAY_SET } from './holidays';
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
 /**
- * 두 날짜 사이의 근무일 수를 계산합니다 (주말 제외)
+ * 두 날짜 사이의 근무일 수를 계산합니다 (주말 + 공휴일 제외)
  */
 export function calculateWorkdays(startDate: Date, endDate: Date): number {
   let count = 0;
-  const current = dayjs(startDate);
   const end = dayjs(endDate);
 
-  let tempDate = current;
+  let tempDate = dayjs(startDate);
   while (tempDate.isSameOrBefore(end, 'day')) {
-    // 0 = Sunday, 6 = Saturday
     const dayOfWeek = tempDate.day();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+    const dateStr = tempDate.format('YYYY-MM-DD');
+    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !HOLIDAY_SET.has(dateStr)) {
       count++;
     }
     tempDate = tempDate.add(1, 'day');

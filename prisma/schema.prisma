@@ -18,6 +18,14 @@ enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
+  CANCELLED
+}
+
+enum LeaveType {
+  ANNUAL
+  HALF
+  SICK
+  SPECIAL
 }
 
 // 사용자 테이블
@@ -33,9 +41,12 @@ model User {
   totalLeaves   Int           @default(15) // 연간 총 연차
   usedLeaves    Float         @default(0)  // 사용한 연차
 
+  isActive      Boolean        @default(true)
+
   // Relations
   leaveRequests AnnualLeave[]
   evaluations   Evaluation[]
+  notifications Notification[]
 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -55,6 +66,7 @@ model AnnualLeave {
   days        Float       // 0.5, 1, 1.5 등 (반차 지원)
   reason      String
   status      LeaveStatus @default(PENDING)
+  leaveType   LeaveType   @default(ANNUAL)
 
   // 승인/거부 정보
   reviewedBy  String?
@@ -131,6 +143,22 @@ model EvaluationScore {
 
   @@unique([evaluationId, itemId])
   @@index([evaluationId])
+}
+
+// 알림 테이블
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  relatedId String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
 }
 
 // NextAuth 세션 테이블

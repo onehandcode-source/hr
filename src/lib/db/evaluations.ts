@@ -242,20 +242,4 @@ export async function updateEvaluation(
   });
 }
 
-export async function getUsers() {
-  return prisma.user.findMany({
-    where: {
-      role: 'EMPLOYEE',
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      department: true,
-      position: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  });
-}
+export { getAllUsers as getUsers } from './users';

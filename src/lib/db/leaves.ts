@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { LeaveStatus } from '@prisma/client';
+import { LeaveStatus, LeaveType } from '@prisma/client';
 
 export async function getLeaveRequests(filters?: {
   status?: LeaveStatus;
@@ -73,6 +73,7 @@ export async function createLeaveRequest(data: {
   endDate: Date;
   days: number;
   reason: string;
+  leaveType?: LeaveType;
 }) {
   return prisma.annualLeave.create({
     data: {
@@ -82,7 +83,29 @@ export async function createLeaveRequest(data: {
       days: data.days,
       reason: data.reason,
       status: 'PENDING',
+      leaveType: data.leaveType ?? 'ANNUAL',
     },
+  });
+}
+
+export async function cancelLeaveRequest(id: string, userId: string) {
+  const leave = await prisma.annualLeave.findUnique({ where: { id } });
+
+  if (!leave) {
+    throw new Error('연차 신청을 찾을 수 없습니다');
+  }
+
+  if (leave.userId !== userId) {
+    throw new Error('권한이 없습니다');
+  }
+
+  if (leave.status !== 'PENDING') {
+    throw new Error('대기 중인 신청만 취소할 수 있습니다');
+  }
+
+  return prisma.annualLeave.update({
+    where: { id },
+    data: { status: 'CANCELLED' },
   });
 }
 
