@@ -10,44 +10,39 @@ dayjs.extend(isSameOrBefore);
  * 두 날짜 사이의 근무일 수를 계산합니다 (주말 + 공휴일 제외)
  */
 export function calculateWorkdays(startDate: Date, endDate: Date): number {
-  let count = 0;
-  const end = dayjs(endDate);
+	let count = 0;
+	const end = dayjs(endDate);
 
-  let tempDate = dayjs(startDate);
-  while (tempDate.isSameOrBefore(end, 'day')) {
-    const dayOfWeek = tempDate.day();
-    const dateStr = tempDate.format('YYYY-MM-DD');
-    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !HOLIDAY_SET.has(dateStr)) {
-      count++;
-    }
-    tempDate = tempDate.add(1, 'day');
-  }
+	let tempDate = dayjs(startDate);
+	while (tempDate.isSameOrBefore(end, 'day')) {
+		const dayOfWeek = tempDate.day();
+		const dateStr = tempDate.format('YYYY-MM-DD');
+		if (dayOfWeek !== 0 && dayOfWeek !== 6 && !HOLIDAY_SET.has(dateStr)) {
+			count++;
+		}
+		tempDate = tempDate.add(1, 'day');
+	}
 
-  return count;
+	return count;
 }
 
 /**
  * 날짜 범위가 겹치는지 확인합니다
  */
-export function isDateRangeOverlap(
-  start1: Date,
-  end1: Date,
-  start2: Date,
-  end2: Date
-): boolean {
-  return dayjs(start1).isSameOrBefore(end2) && dayjs(end1).isSameOrAfter(start2);
+export function isDateRangeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
+	return dayjs(start1).isSameOrBefore(end2) && dayjs(end1).isSameOrAfter(start2);
 }
 
 /**
  * 날짜를 YYYY-MM-DD 형식으로 포맷합니다
  */
 export function formatDate(date: Date): string {
-  return dayjs(date).format('YYYY-MM-DD');
+	return dayjs(date).format('YYYY-MM-DD');
 }
 
 /**
  * 날짜를 YYYY년 MM월 DD일 형식으로 포맷합니다
  */
 export function formatDateKorean(date: Date): string {
-  return dayjs(date).format('YYYY년 MM월 DD일');
+	return dayjs(date).format('YYYY년 MM월 DD일');
 }
