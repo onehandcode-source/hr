@@ -84,12 +84,14 @@ interface Props {
 	title?: string;
 }
 
+type RbcView = (typeof Views)[keyof typeof Views];
+
 export default function LeaveCalendarView({ leaves, title }: Props) {
 	const [mounted, setMounted] = useState(false);
 	const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [calendarDate, setCalendarDate] = useState(new Date());
-	const [calendarView, setCalendarView] = useState<(typeof Views)[keyof typeof Views]>(Views.MONTH);
+	const [calendarView, setCalendarView] = useState<RbcView>(Views.MONTH);
 	const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
 
 	useEffect(() => setMounted(true), []);
@@ -102,6 +104,15 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 			setCalendarView(Views.AGENDA);
 		}
 	}, [isMobile]);
+
+	// isMobile 전환 직후 calendarView가 availableViews에 없는 렌더가 생길 수 있으므로 보정
+	const availableViews: RbcView[] = isMobile
+		? [Views.AGENDA]
+		: [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA];
+
+	const safeCalendarView: RbcView = availableViews.includes(calendarView)
+		? calendarView
+		: availableViews[0];
 
 	const deptColorMap = useMemo(() => buildDeptColorMap(leaves), [leaves]);
 
@@ -184,10 +195,10 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 							endAccessor="end"
 							date={calendarDate}
 							onNavigate={(date) => setCalendarDate(date)}
-							view={calendarView}
+							view={safeCalendarView}
 							onView={(view) => setCalendarView(view)}
 							messages={CALENDAR_MESSAGES}
-							views={isMobile ? [Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+							views={availableViews}
 							eventPropGetter={eventStyleGetter}
 							onSelectEvent={handleCalendarEventSelect}
 							style={{ height: '100%' }}

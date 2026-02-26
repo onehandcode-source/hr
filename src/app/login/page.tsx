@@ -45,7 +45,14 @@ export default function LoginPage() {
 		<div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
 			<Card className="w-full max-w-sm shadow-md">
 				<CardContent className="p-8">
-					<h1 className="text-2xl font-bold text-center mb-1">HR 시스템</h1>
+					<div className="flex justify-center mb-5">
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img
+							src="http://jhydental.com/common/images/main/logo_on.png"
+							alt="로고"
+							className="h-14 object-contain"
+						/>
+					</div>
 					<p className="text-sm text-muted-foreground text-center mb-6">로그인하여 시작하세요</p>
 
 					<form onSubmit={handleSubmit} className="flex flex-col gap-4">
