@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Calendar, dayjsLocalizer, Views } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import dayjs from 'dayjs';
@@ -18,6 +18,7 @@ import {
 	Chip,
 	Paper,
 	Typography,
+	useMediaQuery,
 } from '@mui/material';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ListAltIcon from '@mui/icons-material/ListAlt';
@@ -96,6 +97,15 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 	const [calendarView, setCalendarView] = useState<(typeof Views)[keyof typeof Views]>(Views.MONTH);
 	const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
 
+	const isMobile = useMediaQuery('(max-width:600px)');
+
+	useEffect(() => {
+		if (isMobile) {
+			setViewMode('list');
+			setCalendarView(Views.AGENDA);
+		}
+	}, [isMobile]);
+
 	const deptColorMap = useMemo(() => buildDeptColorMap(leaves), [leaves]);
 
 	// react-big-calendar는 end가 exclusive → 하루 추가
@@ -165,18 +175,18 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 					sx={{ ml: 'auto' }}
 				>
 					<ToggleButton value="calendar">
-						<CalendarMonthIcon fontSize="small" sx={{ mr: 0.5 }} />
-						캘린더
+						<CalendarMonthIcon fontSize="small" sx={{ mr: { xs: 0, sm: 0.5 } }} />
+						<Box sx={{ display: { xs: 'none', sm: 'block' } }}>캘린더</Box>
 					</ToggleButton>
 					<ToggleButton value="list">
-						<ListAltIcon fontSize="small" sx={{ mr: 0.5 }} />
-						목록
+						<ListAltIcon fontSize="small" sx={{ mr: { xs: 0, sm: 0.5 } }} />
+						<Box sx={{ display: { xs: 'none', sm: 'block' } }}>목록</Box>
 					</ToggleButton>
 				</ToggleButtonGroup>
 			</Box>
 
 			{viewMode === 'calendar' ? (
-				<Box sx={{ height: 600 }}>
+				<Box sx={{ height: { xs: 450, sm: 600 } }}>
 					<Calendar
 						localizer={localizer}
 						events={events}
@@ -187,7 +197,7 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 						view={calendarView}
 						onView={(view) => setCalendarView(view)}
 						messages={CALENDAR_MESSAGES}
-						views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+						views={isMobile ? [Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
 						eventPropGetter={eventStyleGetter}
 						onSelectEvent={handleCalendarEventSelect}
 						style={{ height: '100%' }}
@@ -204,9 +214,9 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 							<TableHead>
 								<TableRow>
 									<TableCell>직원명</TableCell>
-									<TableCell>부서</TableCell>
+									<TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>부서</TableCell>
 									<TableCell>시작일</TableCell>
-									<TableCell>종료일</TableCell>
+									<TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>종료일</TableCell>
 									<TableCell>일수</TableCell>
 								</TableRow>
 							</TableHead>
@@ -229,8 +239,22 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 												onClick={() => handleRowClick(leave)}
 												sx={{ cursor: 'pointer' }}
 											>
-												<TableCell>{leave.user.name}</TableCell>
 												<TableCell>
+													{leave.user.name}
+													<Box sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.3 }}>
+														<Chip
+															label={leave.user.department}
+															size="small"
+															sx={{
+																bgcolor: deptColorMap[leave.user.department] ?? '#1976d2',
+																color: '#fff',
+																fontSize: '10px',
+																height: '18px',
+															}}
+														/>
+													</Box>
+												</TableCell>
+												<TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
 													<Chip
 														label={leave.user.department}
 														size="small"
@@ -242,7 +266,9 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 													/>
 												</TableCell>
 												<TableCell>{dayjs(leave.startDate).format('YYYY-MM-DD')}</TableCell>
-												<TableCell>{dayjs(leave.endDate).format('YYYY-MM-DD')}</TableCell>
+												<TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+													{dayjs(leave.endDate).format('YYYY-MM-DD')}
+												</TableCell>
 												<TableCell>{leave.days}일</TableCell>
 											</TableRow>
 										);

@@ -16,7 +16,7 @@ import {
 
 export default function LoginPage() {
 	const router = useRouter();
-	const [email, setEmail] = useState('');
+	const [loginId, setLoginId] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
@@ -28,16 +28,15 @@ export default function LoginPage() {
 
 		try {
 			const result = await signIn('credentials', {
-				email,
+				loginId,
 				password,
 				redirect: false,
 			});
 
 			if (result?.error) {
-				setError(result.error);
+				setError('아이디 또는 비밀번호가 올바르지 않습니다.');
 				setLoading(false);
 			} else if (result?.ok) {
-				// 로그인 성공 - 미들웨어가 적절한 페이지로 리다이렉트
 				router.push('/');
 				router.refresh();
 			}
@@ -69,14 +68,14 @@ export default function LoginPage() {
 
 						<form onSubmit={handleSubmit}>
 							<TextField
-								label="이메일"
-								type="email"
+								label="아이디"
+								type="text"
 								fullWidth
 								required
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
+								value={loginId}
+								onChange={(e) => setLoginId(e.target.value)}
 								sx={{ mb: 2 }}
-								autoComplete="email"
+								autoComplete="username"
 							/>
 
 							<TextField

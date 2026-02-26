@@ -9,6 +9,7 @@ export async function getUsers(includeInactive = false) {
 		},
 		select: {
 			id: true,
+			loginId: true,
 			name: true,
 			email: true,
 			department: true,
@@ -37,6 +38,7 @@ export async function getAllUsers() {
 }
 
 export async function createUser(data: {
+	loginId: string;
 	email: string;
 	password: string;
 	name: string;
@@ -48,6 +50,7 @@ export async function createUser(data: {
 }) {
 	return prisma.user.create({
 		data: {
+			loginId: data.loginId,
 			email: data.email,
 			password: data.password,
 			name: data.name,

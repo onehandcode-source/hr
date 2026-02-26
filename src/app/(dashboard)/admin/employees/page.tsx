@@ -31,6 +31,7 @@ import dayjs from 'dayjs';
 
 interface Employee {
 	id: string;
+	loginId: string;
 	name: string;
 	email: string;
 	department: string | null;
@@ -42,6 +43,7 @@ interface Employee {
 }
 
 interface EmployeeForm {
+	loginId: string;
 	name: string;
 	email: string;
 	password: string;
@@ -52,6 +54,7 @@ interface EmployeeForm {
 }
 
 const emptyForm: EmployeeForm = {
+	loginId: '',
 	name: '',
 	email: '',
 	password: '',
@@ -124,8 +127,8 @@ export default function EmployeesPage() {
 	});
 
 	const handleAdd = () => {
-		if (!form.name || !form.email || !form.password) {
-			toast.error('이름, 이메일, 비밀번호는 필수입니다.');
+		if (!form.loginId || !form.name || !form.email || !form.password) {
+			toast.error('아이디, 이름, 이메일, 비밀번호는 필수입니다.');
 			return;
 		}
 		createMutation.mutate(form);
@@ -181,6 +184,7 @@ export default function EmployeesPage() {
 						<Table>
 							<TableHead>
 								<TableRow>
+									<TableCell>아이디</TableCell>
 									<TableCell>이름</TableCell>
 									<TableCell>이메일</TableCell>
 									<TableCell>부서</TableCell>
@@ -194,13 +198,14 @@ export default function EmployeesPage() {
 							<TableBody>
 								{employees && employees.length === 0 ? (
 									<TableRow>
-										<TableCell colSpan={8} align="center">
+										<TableCell colSpan={9} align="center">
 											직원이 없습니다.
 										</TableCell>
 									</TableRow>
 								) : (
 									employees?.map((emp) => (
 										<TableRow key={emp.id} sx={{ opacity: emp.isActive ? 1 : 0.5 }}>
+											<TableCell sx={{ fontFamily: 'monospace' }}>{emp.loginId}</TableCell>
 											<TableCell>{emp.name}</TableCell>
 											<TableCell>{emp.email}</TableCell>
 											<TableCell>{emp.department || '-'}</TableCell>
@@ -242,6 +247,13 @@ export default function EmployeesPage() {
 				<DialogTitle>직원 추가</DialogTitle>
 				<DialogContent>
 					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+						<TextField
+							label="아이디 *"
+							fullWidth
+							value={form.loginId}
+							onChange={(e) => setForm({ ...form, loginId: e.target.value })}
+							placeholder="영문/숫자 조합 권장"
+						/>
 						<TextField
 							label="이름 *"
 							fullWidth

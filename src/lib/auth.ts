@@ -9,16 +9,16 @@ export const authOptions: NextAuthOptions = {
 		CredentialsProvider({
 			name: 'Credentials',
 			credentials: {
-				email: { label: 'Email', type: 'email' },
+				loginId: { label: '아이디', type: 'text' },
 				password: { label: 'Password', type: 'password' },
 			},
 			async authorize(credentials) {
-				if (!credentials?.email || !credentials?.password) {
-					throw new Error('이메일과 비밀번호를 입력해주세요.');
+				if (!credentials?.loginId || !credentials?.password) {
+					throw new Error('아이디와 비밀번호를 입력해주세요.');
 				}
 
 				const user = await prisma.user.findUnique({
-					where: { email: credentials.email },
+					where: { loginId: credentials.loginId },
 					select: {
 						id: true,
 						email: true,
@@ -31,13 +31,13 @@ export const authOptions: NextAuthOptions = {
 				});
 
 				if (!user) {
-					throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
+					throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
 				}
 
 				const isValid = await verifyPassword(credentials.password, user.password);
 
 				if (!isValid) {
-					throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
+					throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
 				}
 
 				// 비밀번호는 반환하지 않음, null -> undefined 변환
