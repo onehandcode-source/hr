@@ -3,23 +3,21 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
-	Box,
-	Typography,
-	Grid,
-	Card,
-	CardContent,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
+	TableHeader,
 	TableRow,
-	Chip,
-	Button,
-} from '@mui/material';
+} from '@/components/ui/table';
 import { formatDateKorean } from '@/lib/utils/date';
 import LeaveCalendarView from '@/components/common/LeaveCalendarView';
+import PageTransition from '@/components/common/PageTransition';
 
 interface LeaveEvent {
 	id: string;
@@ -37,6 +35,24 @@ const LEAVE_TYPE_LABELS: Record<string, string> = {
 	HALF: '반차',
 	SICK: '병가',
 	SPECIAL: '경조사',
+};
+
+const statusClass: Record<string, string> = {
+	PENDING: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+	APPROVED: 'bg-green-100 text-green-800 hover:bg-green-100',
+	REJECTED: 'bg-red-100 text-red-800 hover:bg-red-100',
+	CANCELLED: 'bg-slate-100 text-slate-600 hover:bg-slate-100',
+};
+const statusText: Record<string, string> = {
+	PENDING: '대기중',
+	APPROVED: '승인',
+	REJECTED: '거부',
+	CANCELLED: '취소',
+};
+
+const cardVariants = {
+	hidden: { opacity: 0, y: 12 },
+	visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.25 } }),
 };
 
 export default function EmployeeDashboard() {
@@ -88,100 +104,50 @@ export default function EmployeeDashboard() {
 	});
 
 	if (isLoading) {
-		return <Typography>로딩 중...</Typography>;
+		return <p className="text-muted-foreground">로딩 중...</p>;
 	}
 
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case 'PENDING':
-				return 'warning';
-			case 'APPROVED':
-				return 'success';
-			case 'REJECTED':
-				return 'error';
-			case 'CANCELLED':
-				return 'default';
-			default:
-				return 'default';
-		}
-	};
-
-	const getStatusText = (status: string) => {
-		switch (status) {
-			case 'PENDING':
-				return '대기중';
-			case 'APPROVED':
-				return '승인';
-			case 'REJECTED':
-				return '거부';
-			case 'CANCELLED':
-				return '취소';
-			default:
-				return status;
-		}
-	};
+	const statCards = [
+		{ label: '총 연차', value: `${stats?.leaveBalance?.totalLeaves || 0}일` },
+		{ label: '사용한 연차', value: `${stats?.leaveBalance?.usedLeaves || 0}일` },
+		{ label: '남은 연차', value: `${stats?.leaveBalance?.remainingLeaves || 0}일` },
+	];
 
 	return (
-		<Box>
-			<Typography variant="h4" component="h1" gutterBottom>
-				직원 대시보드
-			</Typography>
+		<PageTransition>
+			<div>
+				<h1 className="text-2xl font-bold mb-6">직원 대시보드</h1>
 
-			<Grid container spacing={3} sx={{ mt: 2 }}>
-				<Grid size={{ xs: 12, md: 4 }}>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+					{statCards.map((card, i) => (
+						<motion.div key={card.label} custom={i} variants={cardVariants} initial="hidden" animate="visible">
+							<Card>
+								<CardContent className="p-6">
+									<p className="text-sm text-muted-foreground mb-1">{card.label}</p>
+									<p className="text-4xl font-bold">{card.value}</p>
+								</CardContent>
+							</Card>
+						</motion.div>
+					))}
+				</div>
+
+				<div className="mb-6">
+					<h2 className="text-base font-semibold mb-3">내 연차 신청 내역</h2>
 					<Card>
-						<CardContent>
-							<Typography color="text.secondary" gutterBottom>
-								총 연차
-							</Typography>
-							<Typography variant="h3">{stats?.leaveBalance?.totalLeaves || 0}일</Typography>
-						</CardContent>
-					</Card>
-				</Grid>
-
-				<Grid size={{ xs: 12, md: 4 }}>
-					<Card>
-						<CardContent>
-							<Typography color="text.secondary" gutterBottom>
-								사용한 연차
-							</Typography>
-							<Typography variant="h3">{stats?.leaveBalance?.usedLeaves || 0}일</Typography>
-						</CardContent>
-					</Card>
-				</Grid>
-
-				<Grid size={{ xs: 12, md: 4 }}>
-					<Card>
-						<CardContent>
-							<Typography color="text.secondary" gutterBottom>
-								남은 연차
-							</Typography>
-							<Typography variant="h3">{stats?.leaveBalance?.remainingLeaves || 0}일</Typography>
-						</CardContent>
-					</Card>
-				</Grid>
-			</Grid>
-
-			<Box sx={{ mt: 4 }}>
-				<Typography variant="h6" gutterBottom>
-					내 연차 신청 내역
-				</Typography>
-				<Card>
-					<CardContent>
-						{stats?.recentLeaveRequests && stats.recentLeaveRequests.length > 0 ? (
-							<TableContainer>
+						<CardContent className="p-4">
+							{stats?.recentLeaveRequests && stats.recentLeaveRequests.length > 0 ? (
 								<Table>
-									<TableHead>
+									<TableHeader>
 										<TableRow>
-											<TableCell>종류</TableCell>
-											<TableCell>시작일</TableCell>
-											<TableCell>종료일</TableCell>
-											<TableCell>일수</TableCell>
-											<TableCell>사유</TableCell>
-											<TableCell>상태</TableCell>
-											<TableCell>작업</TableCell>
+											<TableHead>종류</TableHead>
+											<TableHead>시작일</TableHead>
+											<TableHead>종료일</TableHead>
+											<TableHead>일수</TableHead>
+											<TableHead>사유</TableHead>
+											<TableHead>상태</TableHead>
+											<TableHead>작업</TableHead>
 										</TableRow>
-									</TableHead>
+									</TableHeader>
 									<TableBody>
 										{stats.recentLeaveRequests.map((leave: any) => (
 											<TableRow key={leave.id}>
@@ -193,18 +159,16 @@ export default function EmployeeDashboard() {
 												<TableCell>{leave.days}일</TableCell>
 												<TableCell>{leave.reason}</TableCell>
 												<TableCell>
-													<Chip
-														label={getStatusText(leave.status)}
-														color={getStatusColor(leave.status) as any}
-														size="small"
-													/>
+													<Badge className={statusClass[leave.status] ?? ''}>
+														{statusText[leave.status] ?? leave.status}
+													</Badge>
 												</TableCell>
 												<TableCell>
 													{leave.status === 'PENDING' && (
 														<Button
-															size="small"
-															variant="outlined"
-															color="error"
+															size="sm"
+															variant="outline"
+															className="text-destructive border-destructive hover:bg-destructive/10"
 															onClick={() => cancelMutation.mutate(leave.id)}
 															disabled={cancelMutation.isPending}
 														>
@@ -216,48 +180,41 @@ export default function EmployeeDashboard() {
 										))}
 									</TableBody>
 								</Table>
-							</TableContainer>
-						) : (
-							<Typography color="text.secondary">연차 신청 내역이 없습니다.</Typography>
-						)}
-					</CardContent>
-				</Card>
-			</Box>
-
-			{stats?.latestEvaluation && (
-				<Box sx={{ mt: 4 }}>
-					<Typography variant="h6" gutterBottom>
-						최근 평가 결과
-					</Typography>
-					<Card>
-						<CardContent>
-							<Typography variant="subtitle1" gutterBottom>
-								{stats.latestEvaluation.period} 평가
-							</Typography>
-							<Typography variant="h4" color="primary">
-								총점: {stats.latestEvaluation.totalScore?.toFixed(2) || 'N/A'}
-							</Typography>
-							{stats.latestEvaluation.comment && (
-								<Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-									{stats.latestEvaluation.comment}
-								</Typography>
+							) : (
+								<p className="text-sm text-muted-foreground">연차 신청 내역이 없습니다.</p>
 							)}
 						</CardContent>
 					</Card>
-				</Box>
-			)}
+				</div>
 
-			{/* 전체 직원 일정 */}
-			<Box sx={{ mt: 4 }}>
-				<Typography variant="h6" gutterBottom>
-					전체 직원 일정
-				</Typography>
-				<Card>
-					<CardContent>
-						<LeaveCalendarView leaves={allLeaves ?? []} title="승인된 연차 현황" />
-					</CardContent>
-				</Card>
-			</Box>
-		</Box>
+				{stats?.latestEvaluation && (
+					<div className="mb-6">
+						<h2 className="text-base font-semibold mb-3">최근 평가 결과</h2>
+						<Card>
+							<CardContent className="p-6">
+								<p className="text-sm font-medium mb-1">{stats.latestEvaluation.period} 평가</p>
+								<p className="text-3xl font-bold text-primary">
+									총점: {stats.latestEvaluation.totalScore?.toFixed(2) || 'N/A'}
+								</p>
+								{stats.latestEvaluation.comment && (
+									<p className="text-sm text-muted-foreground mt-3">
+										{stats.latestEvaluation.comment}
+									</p>
+								)}
+							</CardContent>
+						</Card>
+					</div>
+				)}
+
+				<div>
+					<h2 className="text-base font-semibold mb-3">전체 직원 일정</h2>
+					<Card>
+						<CardContent className="p-4">
+							<LeaveCalendarView leaves={allLeaves ?? []} title="승인된 연차 현황" />
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+		</PageTransition>
 	);
 }

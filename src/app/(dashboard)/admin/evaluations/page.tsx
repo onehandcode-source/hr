@@ -4,30 +4,31 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
-	Box,
-	Typography,
-	Card,
-	CardContent,
-	Grid,
-	TextField,
-	Button,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
+	TableHeader,
 	TableRow,
+} from '@/components/ui/table';
+import {
 	Select,
-	MenuItem,
-	FormControl,
-	InputLabel,
-	Chip,
-	IconButton,
-	Divider,
-} from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select';
 import dayjs from 'dayjs';
+import PageTransition from '@/components/common/PageTransition';
 
 interface User {
 	id: string;
@@ -115,9 +116,7 @@ export default function AdminEvaluationsPage() {
 			setComment('');
 			setScores({});
 		},
-		onError: (err: Error) => {
-			toast.error(err.message);
-		},
+		onError: (err: Error) => toast.error(err.message),
 	});
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -139,39 +138,20 @@ export default function AdminEvaluationsPage() {
 			comment: data.comment,
 		}));
 
-		createMutation.mutate({
-			userId: selectedUserId,
-			period,
-			scores: scoreArray,
-			comment,
-		});
+		createMutation.mutate({ userId: selectedUserId, period, scores: scoreArray, comment });
 	};
 
 	const handleScoreChange = (itemId: string, score: number) => {
-		setScores((prev) => ({
-			...prev,
-			[itemId]: {
-				...prev[itemId],
-				score,
-			},
-		}));
+		setScores((prev) => ({ ...prev, [itemId]: { ...prev[itemId], score } }));
 	};
 
-	const handleScoreCommentChange = (itemId: string, comment: string) => {
-		setScores((prev) => ({
-			...prev,
-			[itemId]: {
-				...prev[itemId],
-				comment,
-			},
-		}));
+	const handleScoreCommentChange = (itemId: string, c: string) => {
+		setScores((prev) => ({ ...prev, [itemId]: { ...prev[itemId], comment: c } }));
 	};
 
 	const groupedItems = items?.reduce(
 		(acc, item) => {
-			if (!acc[item.category]) {
-				acc[item.category] = [];
-			}
+			if (!acc[item.category]) acc[item.category] = [];
 			acc[item.category].push(item);
 			return acc;
 		},
@@ -179,197 +159,181 @@ export default function AdminEvaluationsPage() {
 	);
 
 	return (
-		<Box>
-			<Typography variant="h4" component="h1" gutterBottom>
-				직원 평가
-			</Typography>
+		<PageTransition>
+			<div>
+				<h1 className="text-2xl font-bold mb-4">직원 평가</h1>
 
-			{/* 기존 평가 목록 */}
-			<Card sx={{ mb: 4 }}>
-				<CardContent>
-					<Typography variant="h6" gutterBottom>
-						평가 목록
-					</Typography>
-					<Divider sx={{ mb: 2 }} />
-					<TableContainer>
-						<Table size="small">
-							<TableHead>
+				{/* 평가 목록 */}
+				<Card className="mb-6">
+					<CardContent className="p-4">
+						<h2 className="text-base font-semibold mb-3">평가 목록</h2>
+						<Separator className="mb-3" />
+						<Table>
+							<TableHeader>
 								<TableRow>
-									<TableCell>직원명</TableCell>
-									<TableCell>부서 / 직급</TableCell>
-									<TableCell>평가 기간</TableCell>
-									<TableCell align="center">총점</TableCell>
-									<TableCell align="center">상태</TableCell>
-									<TableCell>작성일</TableCell>
-									<TableCell align="center">보기</TableCell>
+									<TableHead>직원명</TableHead>
+									<TableHead className="hidden sm:table-cell">부서 / 직급</TableHead>
+									<TableHead>평가 기간</TableHead>
+									<TableHead className="text-center">총점</TableHead>
+									<TableHead className="text-center">상태</TableHead>
+									<TableHead className="hidden sm:table-cell">작성일</TableHead>
+									<TableHead className="text-center">보기</TableHead>
 								</TableRow>
-							</TableHead>
+							</TableHeader>
 							<TableBody>
 								{!evaluations || evaluations.length === 0 ? (
 									<TableRow>
-										<TableCell colSpan={7} align="center">
+										<TableCell colSpan={7} className="text-center text-muted-foreground">
 											작성된 평가가 없습니다.
 										</TableCell>
 									</TableRow>
 								) : (
 									evaluations.map((ev) => (
-										<TableRow key={ev.id} hover>
+										<TableRow key={ev.id}>
 											<TableCell>{ev.user.name}</TableCell>
-											<TableCell>
+											<TableCell className="hidden sm:table-cell">
 												{ev.user.department} / {ev.user.position}
 											</TableCell>
 											<TableCell>{ev.period}</TableCell>
-											<TableCell align="center">
-												<Typography fontWeight="bold" color="primary">
-													{ev.totalScore.toFixed(2)}
-												</Typography>
+											<TableCell className="text-center">
+												<span className="font-bold text-primary">{ev.totalScore.toFixed(2)}</span>
 											</TableCell>
-											<TableCell align="center">
-												<Chip
-													label={ev.status === 'COMPLETED' ? '완료' : '임시저장'}
-													color={ev.status === 'COMPLETED' ? 'success' : 'default'}
-													size="small"
-												/>
+											<TableCell className="text-center">
+												<Badge
+													className={
+														ev.status === 'COMPLETED'
+															? 'bg-green-100 text-green-800 hover:bg-green-100'
+															: 'bg-slate-100 text-slate-600 hover:bg-slate-100'
+													}
+												>
+													{ev.status === 'COMPLETED' ? '완료' : '임시저장'}
+												</Badge>
 											</TableCell>
-											<TableCell>{dayjs(ev.createdAt).format('YYYY-MM-DD')}</TableCell>
-											<TableCell align="center">
-												<IconButton
-													size="small"
-													color="primary"
+											<TableCell className="hidden sm:table-cell">
+												{dayjs(ev.createdAt).format('YYYY-MM-DD')}
+											</TableCell>
+											<TableCell className="text-center">
+												<Button
+													size="icon"
+													variant="ghost"
+													className="h-7 w-7 text-primary"
 													onClick={() => router.push(`/admin/evaluations/${ev.id}`)}
 												>
-													<VisibilityIcon fontSize="small" />
-												</IconButton>
+													<Eye className="h-4 w-4" />
+												</Button>
 											</TableCell>
 										</TableRow>
 									))
 								)}
 							</TableBody>
 						</Table>
-					</TableContainer>
-				</CardContent>
-			</Card>
+					</CardContent>
+				</Card>
 
-			{/* 새 평가 작성 */}
-			<Card>
-				<CardContent>
-					<Typography variant="h6" gutterBottom>
-						새 평가 작성
-					</Typography>
-					<Divider sx={{ mb: 2 }} />
-					<form onSubmit={handleSubmit}>
-						<Grid container spacing={3}>
-							<Grid size={{ xs: 12, md: 6 }}>
-								<FormControl fullWidth required>
-									<InputLabel>직원 선택</InputLabel>
-									<Select
-										value={selectedUserId}
-										label="직원 선택"
-										onChange={(e) => setSelectedUserId(e.target.value)}
-									>
-										{users?.map((user) => (
-											<MenuItem key={user.id} value={user.id}>
-												{user.name} ({user.department} / {user.position})
-											</MenuItem>
-										))}
+				{/* 새 평가 작성 */}
+				<Card>
+					<CardContent className="p-4">
+						<h2 className="text-base font-semibold mb-3">새 평가 작성</h2>
+						<Separator className="mb-4" />
+						<form onSubmit={handleSubmit} className="flex flex-col gap-5">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div className="space-y-1.5">
+									<Label>직원 선택 *</Label>
+									<Select value={selectedUserId} onValueChange={setSelectedUserId}>
+										<SelectTrigger>
+											<SelectValue placeholder="직원을 선택하세요" />
+										</SelectTrigger>
+										<SelectContent>
+											{users?.map((user) => (
+												<SelectItem key={user.id} value={user.id}>
+													{user.name} ({user.department} / {user.position})
+												</SelectItem>
+											))}
+										</SelectContent>
 									</Select>
-								</FormControl>
-							</Grid>
-
-							<Grid size={{ xs: 12, md: 6 }}>
-								<TextField
-									label="평가 기간"
-									fullWidth
-									required
-									value={period}
-									onChange={(e) => setPeriod(e.target.value)}
-									placeholder="예: 2024-Q1, 2024-H1"
-								/>
-							</Grid>
+								</div>
+								<div className="space-y-1.5">
+									<Label htmlFor="evalPeriod">평가 기간 *</Label>
+									<Input
+										id="evalPeriod"
+										value={period}
+										onChange={(e) => setPeriod(e.target.value)}
+										placeholder="예: 2024-Q1, 2024-H1"
+									/>
+								</div>
+							</div>
 
 							{selectedUserId && (
 								<>
 									{Object.entries(groupedItems || {}).map(([category, categoryItems]) => (
-										<Grid size={12} key={category}>
-											<Typography variant="h6" gutterBottom>
-												{category}
-											</Typography>
-											<TableContainer>
-												<Table>
-													<TableHead>
-														<TableRow>
-															<TableCell>항목</TableCell>
-															<TableCell>설명</TableCell>
-															<TableCell width="150px">
-																점수 (최대 {categoryItems[0]?.maxScore})
+										<div key={category}>
+											<h3 className="text-base font-semibold mb-2">{category}</h3>
+											<Table>
+												<TableHeader>
+													<TableRow>
+														<TableHead>항목</TableHead>
+														<TableHead className="hidden md:table-cell">설명</TableHead>
+														<TableHead className="w-40">
+															점수 (최대 {categoryItems[0]?.maxScore})
+														</TableHead>
+														<TableHead>코멘트</TableHead>
+													</TableRow>
+												</TableHeader>
+												<TableBody>
+													{categoryItems.map((item) => (
+														<TableRow key={item.id}>
+															<TableCell>{item.title}</TableCell>
+															<TableCell className="hidden md:table-cell">
+																{item.description}
 															</TableCell>
-															<TableCell>코멘트</TableCell>
+															<TableCell>
+																<Input
+																	type="number"
+																	className="w-24"
+																	min={0}
+																	max={item.maxScore}
+																	step={0.5}
+																	value={scores[item.id]?.score || ''}
+																	onChange={(e) =>
+																		handleScoreChange(item.id, parseFloat(e.target.value))
+																	}
+																/>
+															</TableCell>
+															<TableCell>
+																<Input
+																	placeholder="선택사항"
+																	value={scores[item.id]?.comment || ''}
+																	onChange={(e) =>
+																		handleScoreCommentChange(item.id, e.target.value)
+																	}
+																/>
+															</TableCell>
 														</TableRow>
-													</TableHead>
-													<TableBody>
-														{categoryItems.map((item) => (
-															<TableRow key={item.id}>
-																<TableCell>{item.title}</TableCell>
-																<TableCell>{item.description}</TableCell>
-																<TableCell>
-																	<TextField
-																		type="number"
-																		size="small"
-																		slotProps={{
-																			htmlInput: { min: 0, max: item.maxScore, step: 0.5 },
-																		}}
-																		value={scores[item.id]?.score || ''}
-																		onChange={(e) =>
-																			handleScoreChange(item.id, parseFloat(e.target.value))
-																		}
-																	/>
-																</TableCell>
-																<TableCell>
-																	<TextField
-																		size="small"
-																		fullWidth
-																		placeholder="선택사항"
-																		value={scores[item.id]?.comment || ''}
-																		onChange={(e) =>
-																			handleScoreCommentChange(item.id, e.target.value)
-																		}
-																	/>
-																</TableCell>
-															</TableRow>
-														))}
-													</TableBody>
-												</Table>
-											</TableContainer>
-										</Grid>
+													))}
+												</TableBody>
+											</Table>
+										</div>
 									))}
 
-									<Grid size={12}>
-										<TextField
-											label="종합 코멘트"
-											fullWidth
-											multiline
+									<div className="space-y-1.5">
+										<Label htmlFor="evalComment">종합 코멘트</Label>
+										<Textarea
+											id="evalComment"
 											rows={4}
 											value={comment}
 											onChange={(e) => setComment(e.target.value)}
 										/>
-									</Grid>
+									</div>
 								</>
 							)}
 
-							<Grid size={12}>
-								<Button
-									type="submit"
-									variant="contained"
-									size="large"
-									disabled={createMutation.isPending}
-								>
-									{createMutation.isPending ? '저장 중...' : '평가 저장'}
-								</Button>
-							</Grid>
-						</Grid>
-					</form>
-				</CardContent>
-			</Card>
-		</Box>
+							<Button type="submit" size="lg" disabled={createMutation.isPending} className="self-start">
+								{createMutation.isPending ? '저장 중...' : '평가 저장'}
+							</Button>
+						</form>
+					</CardContent>
+				</Card>
+			</div>
+		</PageTransition>
 	);
 }

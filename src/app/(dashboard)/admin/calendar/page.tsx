@@ -3,8 +3,9 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Box, Typography, Card, CardContent } from '@mui/material';
+import { Card, CardContent } from '@/components/ui/card';
 import LeaveCalendarView from '@/components/common/LeaveCalendarView';
+import PageTransition from '@/components/common/PageTransition';
 
 interface LeaveEvent {
 	id: string;
@@ -36,20 +37,19 @@ export default function AdminCalendarPage() {
 	}, [error]);
 
 	if (isLoading) {
-		return <Typography>로딩 중...</Typography>;
+		return <p className="text-muted-foreground">로딩 중...</p>;
 	}
 
 	return (
-		<Box>
-			<Typography variant="h4" component="h1" gutterBottom>
-				전체 직원 일정
-			</Typography>
-
-			<Card sx={{ mt: 2 }}>
-				<CardContent>
-					<LeaveCalendarView leaves={leaves ?? []} title="모든 직원의 승인된 연차 현황" />
-				</CardContent>
-			</Card>
-		</Box>
+		<PageTransition>
+			<div>
+				<h1 className="text-2xl font-bold mb-4">전체 직원 일정</h1>
+				<Card className="mt-2">
+					<CardContent className="p-4">
+						<LeaveCalendarView leaves={leaves ?? []} title="모든 직원의 승인된 연차 현황" />
+					</CardContent>
+				</Card>
+			</div>
+		</PageTransition>
 	);
 }

@@ -4,24 +4,21 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
-	Box,
-	Typography,
-	Card,
-	CardContent,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
+	TableHeader,
 	TableRow,
-	Chip,
-	Divider,
-	Button,
-	Grid,
-} from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+} from '@/components/ui/table';
 import dayjs from 'dayjs';
+import PageTransition from '@/components/common/PageTransition';
 
 interface EvaluationScore {
 	id: string;
@@ -74,13 +71,8 @@ export default function EvaluationDetailPage() {
 		if (error) toast.error('평가 데이터를 불러오는데 실패했습니다.');
 	}, [error]);
 
-	if (isLoading) {
-		return <Typography>로딩 중...</Typography>;
-	}
-
-	if (!evaluation) {
-		return null;
-	}
+	if (isLoading) return <p className="text-muted-foreground">로딩 중...</p>;
+	if (!evaluation) return null;
 
 	const groupedScores = evaluation.scores.reduce(
 		(acc, score) => {
@@ -93,149 +85,128 @@ export default function EvaluationDetailPage() {
 	);
 
 	return (
-		<Box>
-			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-				<Button
-					startIcon={<ArrowBackIcon />}
-					onClick={() => router.push('/admin/evaluations')}
-					variant="outlined"
-					size="small"
-				>
-					목록으로
-				</Button>
-				<Typography variant="h4" component="h1">
-					평가 상세
-				</Typography>
-			</Box>
+		<PageTransition>
+			<div>
+				<div className="flex items-center gap-2 mb-5">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => router.push('/admin/evaluations')}
+					>
+						<ArrowLeft className="h-4 w-4 mr-1" />
+						목록으로
+					</Button>
+					<h1 className="text-2xl font-bold">평가 상세</h1>
+				</div>
 
-			{/* 기본 정보 */}
-			<Card sx={{ mb: 3 }}>
-				<CardContent>
-					<Typography variant="h6" gutterBottom>
-						기본 정보
-					</Typography>
-					<Divider sx={{ mb: 2 }} />
-					<Grid container spacing={2}>
-						<Grid size={{ xs: 12, sm: 6, md: 3 }}>
-							<Typography variant="body2" color="text.secondary">
-								직원명
-							</Typography>
-							<Typography variant="body1" fontWeight="medium">
-								{evaluation.user.name}
-							</Typography>
-						</Grid>
-						<Grid size={{ xs: 12, sm: 6, md: 3 }}>
-							<Typography variant="body2" color="text.secondary">
-								부서 / 직급
-							</Typography>
-							<Typography variant="body1">
-								{evaluation.user.department} / {evaluation.user.position}
-							</Typography>
-						</Grid>
-						<Grid size={{ xs: 12, sm: 6, md: 3 }}>
-							<Typography variant="body2" color="text.secondary">
-								평가 기간
-							</Typography>
-							<Typography variant="body1" fontWeight="medium">
-								{evaluation.period}
-							</Typography>
-						</Grid>
-						<Grid size={{ xs: 12, sm: 6, md: 3 }}>
-							<Typography variant="body2" color="text.secondary">
-								총점
-							</Typography>
-							<Typography variant="body1" fontWeight="bold" color="primary">
-								{evaluation.totalScore.toFixed(2)}점
-							</Typography>
-						</Grid>
-						<Grid size={{ xs: 12, sm: 6, md: 3 }}>
-							<Typography variant="body2" color="text.secondary">
-								상태
-							</Typography>
-							<Chip
-								label={evaluation.status === 'COMPLETED' ? '완료' : '임시저장'}
-								color={evaluation.status === 'COMPLETED' ? 'success' : 'default'}
-								size="small"
-							/>
-						</Grid>
-						<Grid size={{ xs: 12, sm: 6, md: 3 }}>
-							<Typography variant="body2" color="text.secondary">
-								작성일
-							</Typography>
-							<Typography variant="body1">
-								{dayjs(evaluation.createdAt).format('YYYY년 MM월 DD일')}
-							</Typography>
-						</Grid>
-					</Grid>
-				</CardContent>
-			</Card>
+				{/* 기본 정보 */}
+				<Card className="mb-4">
+					<CardContent className="p-6">
+						<h2 className="text-base font-semibold mb-3">기본 정보</h2>
+						<Separator className="mb-4" />
+						<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+							{[
+								{ label: '직원명', value: evaluation.user.name },
+								{
+									label: '부서 / 직급',
+									value: `${evaluation.user.department} / ${evaluation.user.position}`,
+								},
+								{ label: '평가 기간', value: evaluation.period },
+								{
+									label: '총점',
+									value: (
+										<span className="font-bold text-primary">
+											{evaluation.totalScore.toFixed(2)}점
+										</span>
+									),
+								},
+								{
+									label: '상태',
+									value: (
+										<Badge
+											className={
+												evaluation.status === 'COMPLETED'
+													? 'bg-green-100 text-green-800 hover:bg-green-100'
+													: 'bg-slate-100 text-slate-600 hover:bg-slate-100'
+											}
+										>
+											{evaluation.status === 'COMPLETED' ? '완료' : '임시저장'}
+										</Badge>
+									),
+								},
+								{
+									label: '작성일',
+									value: dayjs(evaluation.createdAt).format('YYYY년 MM월 DD일'),
+								},
+							].map(({ label, value }) => (
+								<div key={label}>
+									<p className="text-xs text-muted-foreground mb-1">{label}</p>
+									<div className="text-sm font-medium">{value}</div>
+								</div>
+							))}
+						</div>
+					</CardContent>
+				</Card>
 
-			{/* 항목별 점수 */}
-			{Object.entries(groupedScores).map(([category, scores]) => (
-				<Card key={category} sx={{ mb: 2 }}>
-					<CardContent>
-						<Typography variant="h6" gutterBottom>
-							{category}
-						</Typography>
-						<TableContainer>
-							<Table size="small">
-								<TableHead>
+				{/* 항목별 점수 */}
+				{Object.entries(groupedScores).map(([category, scores]) => (
+					<Card key={category} className="mb-3">
+						<CardContent className="p-4">
+							<h2 className="text-base font-semibold mb-3">{category}</h2>
+							<Table>
+								<TableHeader>
 									<TableRow>
-										<TableCell>항목</TableCell>
-										<TableCell>설명</TableCell>
-										<TableCell align="center">점수</TableCell>
-										<TableCell align="center">가중치</TableCell>
-										<TableCell>코멘트</TableCell>
+										<TableHead>항목</TableHead>
+										<TableHead>설명</TableHead>
+										<TableHead className="text-center">점수</TableHead>
+										<TableHead className="text-center">가중치</TableHead>
+										<TableHead>코멘트</TableHead>
 									</TableRow>
-								</TableHead>
+								</TableHeader>
 								<TableBody>
 									{scores.map((s) => (
 										<TableRow key={s.id}>
 											<TableCell>{s.item.title}</TableCell>
-											<TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+											<TableCell className="text-muted-foreground text-xs">
 												{s.item.description}
 											</TableCell>
-											<TableCell align="center">
-												<Chip
-													label={`${s.score} / ${s.item.maxScore}`}
-													size="small"
-													color={
+											<TableCell className="text-center">
+												<Badge
+													variant="outline"
+													className={
 														s.score >= s.item.maxScore * 0.8
-															? 'success'
+															? 'border-green-500 text-green-700'
 															: s.score >= s.item.maxScore * 0.5
-																? 'warning'
-																: 'error'
+																? 'border-yellow-500 text-yellow-700'
+																: 'border-red-500 text-red-700'
 													}
-													variant="outlined"
-												/>
+												>
+													{s.score} / {s.item.maxScore}
+												</Badge>
 											</TableCell>
-											<TableCell align="center">{s.item.weight}</TableCell>
-											<TableCell sx={{ color: 'text.secondary', fontSize: '0.85rem' }}>
+											<TableCell className="text-center">{s.item.weight}</TableCell>
+											<TableCell className="text-muted-foreground text-sm">
 												{s.comment || '-'}
 											</TableCell>
 										</TableRow>
 									))}
 								</TableBody>
 							</Table>
-						</TableContainer>
-					</CardContent>
-				</Card>
-			))}
+						</CardContent>
+					</Card>
+				))}
 
-			{/* 종합 코멘트 */}
-			{evaluation.comment && (
-				<Card>
-					<CardContent>
-						<Typography variant="h6" gutterBottom>
-							종합 코멘트
-						</Typography>
-						<Divider sx={{ mb: 2 }} />
-						<Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-							{evaluation.comment}
-						</Typography>
-					</CardContent>
-				</Card>
-			)}
-		</Box>
+				{/* 종합 코멘트 */}
+				{evaluation.comment && (
+					<Card>
+						<CardContent className="p-6">
+							<h2 className="text-base font-semibold mb-3">종합 코멘트</h2>
+							<Separator className="mb-3" />
+							<p className="text-sm whitespace-pre-wrap">{evaluation.comment}</p>
+						</CardContent>
+					</Card>
+				)}
+			</div>
+		</PageTransition>
 	);
 }

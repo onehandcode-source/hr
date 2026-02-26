@@ -3,16 +3,11 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import {
-	Box,
-	Card,
-	CardContent,
-	TextField,
-	Button,
-	Typography,
-	Alert,
-	Container,
-} from '@mui/material';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function LoginPage() {
 	const router = useRouter();
@@ -40,68 +35,56 @@ export default function LoginPage() {
 				router.push('/');
 				router.refresh();
 			}
-		} catch (err) {
+		} catch {
 			setError('로그인 중 오류가 발생했습니다.');
 			setLoading(false);
 		}
 	};
 
 	return (
-		<Container maxWidth="sm">
-			<Box
-				sx={{
-					minHeight: '100vh',
-					display: 'flex',
-					flexDirection: 'column',
-					justifyContent: 'center',
-					alignItems: 'center',
-				}}
-			>
-				<Card sx={{ width: '100%', maxWidth: 400 }}>
-					<CardContent sx={{ p: 4 }}>
-						<Typography variant="h4" component="h1" gutterBottom align="center">
-							HR 시스템
-						</Typography>
-						<Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-							로그인하여 시작하세요
-						</Typography>
+		<div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+			<Card className="w-full max-w-sm shadow-md">
+				<CardContent className="p-8">
+					<h1 className="text-2xl font-bold text-center mb-1">HR 시스템</h1>
+					<p className="text-sm text-muted-foreground text-center mb-6">로그인하여 시작하세요</p>
 
-						<form onSubmit={handleSubmit}>
-							<TextField
-								label="아이디"
+					<form onSubmit={handleSubmit} className="flex flex-col gap-4">
+						<div className="space-y-1.5">
+							<Label htmlFor="loginId">아이디</Label>
+							<Input
+								id="loginId"
 								type="text"
-								fullWidth
 								required
 								value={loginId}
 								onChange={(e) => setLoginId(e.target.value)}
-								sx={{ mb: 2 }}
 								autoComplete="username"
 							/>
+						</div>
 
-							<TextField
-								label="비밀번호"
+						<div className="space-y-1.5">
+							<Label htmlFor="password">비밀번호</Label>
+							<Input
+								id="password"
 								type="password"
-								fullWidth
 								required
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
-								sx={{ mb: 3 }}
 								autoComplete="current-password"
 							/>
+						</div>
 
-							{error && (
-								<Alert severity="error" sx={{ mb: 2 }}>
-									{error}
-								</Alert>
-							)}
+						{error && (
+							<Alert variant="destructive">
+								<AlertDescription>{error}</AlertDescription>
+							</Alert>
+						)}
 
-							<Button type="submit" variant="contained" fullWidth size="large" disabled={loading}>
-								{loading ? '로그인 중...' : '로그인'}
-							</Button>
-						</form>
-					</CardContent>
-				</Card>
-			</Box>
-		</Container>
+						<Button type="submit" className="w-full mt-1" disabled={loading}>
+							{loading ? '로그인 중...' : '로그인'}
+						</Button>
+					</form>
+				</CardContent>
+			</Card>
+		</div>
 	);
 }

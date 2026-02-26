@@ -4,26 +4,17 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
-import {
-	Box,
-	Typography,
-	Card,
-	CardContent,
-	TextField,
-	Button,
-	Alert,
-	FormControl,
-	FormLabel,
-	RadioGroup,
-	FormControlLabel,
-	Radio,
-} from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs, { Dayjs } from 'dayjs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 import { calculateWorkdays } from '@/lib/utils/date';
+import PageTransition from '@/components/common/PageTransition';
 
 type LeaveType = 'ANNUAL' | 'HALF' | 'SICK' | 'SPECIAL';
 
@@ -38,8 +29,8 @@ export default function LeaveRequestPage() {
 	const { data: session } = useSession();
 	const queryClient = useQueryClient();
 
-	const [startDate, setStartDate] = useState<Dayjs | null>(null);
-	const [endDate, setEndDate] = useState<Dayjs | null>(null);
+	const [startDate, setStartDate] = useState<string>('');
+	const [endDate, setEndDate] = useState<string>('');
 	const [leaveType, setLeaveType] = useState<LeaveType>('ANNUAL');
 	const [reason, setReason] = useState('');
 
@@ -50,7 +41,6 @@ export default function LeaveRequestPage() {
 		}
 	}, [leaveType, startDate]);
 
-	// 사용자 연차 잔여 조회
 	const { data: leaveBalance } = useQuery({
 		queryKey: ['leaveBalance', session?.user?.id],
 		queryFn: async () => {
@@ -78,8 +68,8 @@ export default function LeaveRequestPage() {
 			queryClient.invalidateQueries({ queryKey: ['leaves'] });
 			queryClient.invalidateQueries({ queryKey: ['leaveBalance'] });
 			toast.success('연차 신청이 완료되었습니다.');
-			setStartDate(null);
-			setEndDate(null);
+			setStartDate('');
+			setEndDate('');
 			setReason('');
 			setLeaveType('ANNUAL');
 		},
@@ -88,17 +78,14 @@ export default function LeaveRequestPage() {
 		},
 	});
 
-	const calculateDays = () => {
-		if (!startDate || !endDate) return 0;
-
-		if (leaveType === 'HALF') {
-			return 0.5;
-		}
-
-		return calculateWorkdays(startDate.toDate(), endDate.toDate());
-	};
-
 	const isHalfDay = leaveType === 'HALF';
+
+	const calculateDays = () => {
+		if (!startDate) return 0;
+		if (isHalfDay) return 0.5;
+		if (!endDate) return 0;
+		return calculateWorkdays(dayjs(startDate).toDate(), dayjs(endDate).toDate());
+	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -108,7 +95,7 @@ export default function LeaveRequestPage() {
 			return;
 		}
 
-		if (!isHalfDay && startDate.isAfter(endDate!)) {
+		if (!isHalfDay && dayjs(startDate).isAfter(dayjs(endDate))) {
 			toast.error('종료일은 시작일 이후여야 합니다.');
 			return;
 		}
@@ -119,11 +106,11 @@ export default function LeaveRequestPage() {
 		}
 
 		const days = calculateDays();
-		const finalEndDate = isHalfDay ? startDate : endDate!;
+		const finalEndDate = isHalfDay ? startDate : endDate;
 
 		createMutation.mutate({
-			startDate: startDate.toISOString(),
-			endDate: finalEndDate.toISOString(),
+			startDate: dayjs(startDate).toISOString(),
+			endDate: dayjs(finalEndDate).toISOString(),
 			days,
 			reason,
 			leaveType,
@@ -131,96 +118,93 @@ export default function LeaveRequestPage() {
 	};
 
 	return (
-		<LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
-			<Box>
-				<Typography variant="h4" component="h1" gutterBottom>
-					연차 신청
-				</Typography>
+		<PageTransition>
+			<div>
+				<h1 className="text-2xl font-bold mb-4">연차 신청</h1>
 
 				{leaveBalance && (
-					<Alert severity="info" sx={{ mb: 2 }}>
-						총 연차: {leaveBalance.totalLeaves}일 | 사용: {leaveBalance.usedLeaves}일 | 남은 연차:{' '}
-						{leaveBalance.remainingLeaves}일
+					<Alert className="mb-4">
+						<AlertDescription>
+							총 연차: {leaveBalance.totalLeaves}일 | 사용: {leaveBalance.usedLeaves}일 | 남은 연차:{' '}
+							{leaveBalance.remainingLeaves}일
+						</AlertDescription>
 					</Alert>
 				)}
 
 				<Card>
-					<CardContent>
-						<form onSubmit={handleSubmit}>
-							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-								<FormControl component="fieldset">
-									<FormLabel component="legend">연차 유형</FormLabel>
-									<RadioGroup
-										row
-										value={leaveType}
-										onChange={(e) => setLeaveType(e.target.value as LeaveType)}
-									>
-										{(Object.keys(LEAVE_TYPE_LABELS) as LeaveType[]).map((type) => (
-											<FormControlLabel
-												key={type}
-												value={type}
-												control={<Radio />}
-												label={LEAVE_TYPE_LABELS[type]}
-											/>
-										))}
-									</RadioGroup>
-								</FormControl>
+					<CardContent className="p-6">
+						<form onSubmit={handleSubmit} className="flex flex-col gap-5">
+							{/* 연차 유형 */}
+							<div className="space-y-2">
+								<Label>연차 유형</Label>
+								<RadioGroup
+									value={leaveType}
+									onValueChange={(v) => setLeaveType(v as LeaveType)}
+									className="flex flex-row flex-wrap gap-4"
+								>
+									{(Object.keys(LEAVE_TYPE_LABELS) as LeaveType[]).map((type) => (
+										<div key={type} className="flex items-center gap-2">
+											<RadioGroupItem value={type} id={type} />
+											<Label htmlFor={type}>{LEAVE_TYPE_LABELS[type]}</Label>
+										</div>
+									))}
+								</RadioGroup>
+							</div>
 
-								<DatePicker
-									label="시작일"
+							{/* 시작일 */}
+							<div className="space-y-1.5">
+								<Label htmlFor="startDate">시작일</Label>
+								<Input
+									id="startDate"
+									type="date"
 									value={startDate}
-									onChange={(newValue) => setStartDate(newValue)}
-									slotProps={{
-										textField: {
-											fullWidth: true,
-											required: true,
-										},
-									}}
+									onChange={(e) => setStartDate(e.target.value)}
+									required
 								/>
+							</div>
 
-								{!isHalfDay && (
-									<DatePicker
-										label="종료일"
+							{/* 종료일 (반차가 아닌 경우) */}
+							{!isHalfDay && (
+								<div className="space-y-1.5">
+									<Label htmlFor="endDate">종료일</Label>
+									<Input
+										id="endDate"
+										type="date"
 										value={endDate}
-										onChange={(newValue) => setEndDate(newValue)}
-										minDate={startDate || undefined}
-										slotProps={{
-											textField: {
-												fullWidth: true,
-												required: true,
-											},
-										}}
+										min={startDate}
+										onChange={(e) => setEndDate(e.target.value)}
+										required
 									/>
-								)}
+								</div>
+							)}
 
-								{startDate && (isHalfDay || endDate) && (
-									<Alert severity="info">신청 일수: {calculateDays()}일</Alert>
-								)}
+							{/* 신청 일수 미리보기 */}
+							{startDate && (isHalfDay || endDate) && (
+								<Alert>
+									<AlertDescription>신청 일수: {calculateDays()}일</AlertDescription>
+								</Alert>
+							)}
 
-								<TextField
-									label="사유"
-									multiline
+							{/* 사유 */}
+							<div className="space-y-1.5">
+								<Label htmlFor="reason">사유</Label>
+								<Textarea
+									id="reason"
 									rows={4}
-									fullWidth
 									required
 									value={reason}
 									onChange={(e) => setReason(e.target.value)}
 									placeholder="연차 사유를 입력해주세요"
 								/>
+							</div>
 
-								<Button
-									type="submit"
-									variant="contained"
-									size="large"
-									disabled={createMutation.isPending}
-								>
-									{createMutation.isPending ? '신청 중...' : '신청하기'}
-								</Button>
-							</Box>
+							<Button type="submit" size="lg" disabled={createMutation.isPending}>
+								{createMutation.isPending ? '신청 중...' : '신청하기'}
+							</Button>
 						</form>
 					</CardContent>
 				</Card>
-			</Box>
-		</LocalizationProvider>
+			</div>
+		</PageTransition>
 	);
 }

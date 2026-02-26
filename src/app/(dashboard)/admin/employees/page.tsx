@@ -3,35 +3,34 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Plus, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import {
-	Box,
-	Typography,
-	Card,
-	CardContent,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
+	TableHeader,
 	TableRow,
-	Button,
-	Chip,
+} from '@/components/ui/table';
+import {
 	Dialog,
-	DialogTitle,
 	DialogContent,
-	DialogActions,
-	TextField,
-	Switch,
-	FormControlLabel,
-	IconButton,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import dayjs from 'dayjs';
+import PageTransition from '@/components/common/PageTransition';
 
 interface Employee {
 	id: string;
-	loginId: string;
 	name: string;
 	email: string;
 	department: string | null;
@@ -43,7 +42,6 @@ interface Employee {
 }
 
 interface EmployeeForm {
-	loginId: string;
 	name: string;
 	email: string;
 	password: string;
@@ -54,7 +52,6 @@ interface EmployeeForm {
 }
 
 const emptyForm: EmployeeForm = {
-	loginId: '',
 	name: '',
 	email: '',
 	password: '',
@@ -71,6 +68,8 @@ export default function EmployeesPage() {
 	const [editTarget, setEditTarget] = useState<Employee | null>(null);
 	const [form, setForm] = useState<EmployeeForm>(emptyForm);
 	const [editForm, setEditForm] = useState<Partial<EmployeeForm>>({});
+
+	const isMobile = useIsMobile();
 
 	const { data: employees, isLoading } = useQuery<Employee[]>({
 		queryKey: ['employees', showInactive],
@@ -127,8 +126,8 @@ export default function EmployeesPage() {
 	});
 
 	const handleAdd = () => {
-		if (!form.loginId || !form.name || !form.email || !form.password) {
-			toast.error('아이디, 이름, 이메일, 비밀번호는 필수입니다.');
+		if (!form.name || !form.email || !form.password) {
+			toast.error('이름, 이메일, 비밀번호는 필수입니다.');
 			return;
 		}
 		createMutation.mutate(form);
@@ -151,213 +150,281 @@ export default function EmployeesPage() {
 	};
 
 	const handleToggleActive = (emp: Employee) => {
-		updateMutation.mutate({
-			id: emp.id,
-			data: { isActive: !emp.isActive },
-		});
+		updateMutation.mutate({ id: emp.id, data: { isActive: !emp.isActive } });
 	};
 
-	if (isLoading) return <Typography>로딩 중...</Typography>;
+	if (isLoading) return <p className="text-muted-foreground">로딩 중...</p>;
 
 	return (
-		<Box>
-			<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-				<Typography variant="h4" component="h1">
-					직원 관리
-				</Typography>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-					<FormControlLabel
-						control={
-							<Switch checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
-						}
-						label="비활성 직원 포함"
-					/>
-					<Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
-						직원 추가
-					</Button>
-				</Box>
-			</Box>
+		<PageTransition>
+			<div>
+				<div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+					<h1 className="text-2xl font-bold">직원 관리</h1>
+					<div className="flex items-center gap-3">
+						<div className="flex items-center gap-2">
+							<Switch
+								id="showInactive"
+								checked={showInactive}
+								onCheckedChange={setShowInactive}
+							/>
+							<Label htmlFor="showInactive" className="text-sm">
+								비활성 직원 포함
+							</Label>
+						</div>
+						<Button onClick={() => setAddOpen(true)}>
+							<Plus className="h-4 w-4 mr-1" />
+							직원 추가
+						</Button>
+					</div>
+				</div>
 
-			<Card>
-				<CardContent>
-					<TableContainer>
-						<Table>
-							<TableHead>
-								<TableRow>
-									<TableCell>아이디</TableCell>
-									<TableCell>이름</TableCell>
-									<TableCell>이메일</TableCell>
-									<TableCell>부서</TableCell>
-									<TableCell>직급</TableCell>
-									<TableCell>입사일</TableCell>
-									<TableCell>연차 (총/사용/잔여)</TableCell>
-									<TableCell>상태</TableCell>
-									<TableCell>작업</TableCell>
-								</TableRow>
-							</TableHead>
-							<TableBody>
-								{employees && employees.length === 0 ? (
-									<TableRow>
-										<TableCell colSpan={9} align="center">
-											직원이 없습니다.
-										</TableCell>
-									</TableRow>
-								) : (
-									employees?.map((emp) => (
-										<TableRow key={emp.id} sx={{ opacity: emp.isActive ? 1 : 0.5 }}>
-											<TableCell sx={{ fontFamily: 'monospace' }}>{emp.loginId}</TableCell>
-											<TableCell>{emp.name}</TableCell>
-											<TableCell>{emp.email}</TableCell>
-											<TableCell>{emp.department || '-'}</TableCell>
-											<TableCell>{emp.position || '-'}</TableCell>
-											<TableCell>{dayjs(emp.hireDate).format('YYYY-MM-DD')}</TableCell>
-											<TableCell>
-												{emp.totalLeaves} / {emp.usedLeaves} / {emp.totalLeaves - emp.usedLeaves}
-											</TableCell>
-											<TableCell>
-												<Chip
-													label={emp.isActive ? '활성' : '비활성'}
-													color={emp.isActive ? 'success' : 'default'}
-													size="small"
-												/>
-											</TableCell>
-											<TableCell>
-												<Box sx={{ display: 'flex', gap: 1 }}>
-													<IconButton size="small" onClick={() => handleEditOpen(emp)}>
-														<EditIcon fontSize="small" />
-													</IconButton>
+				{/* 모바일: 카드 */}
+				{isMobile ? (
+					<div className="flex flex-col gap-3">
+						{!employees || employees.length === 0 ? (
+							<p className="text-center text-muted-foreground py-6">직원이 없습니다.</p>
+						) : (
+							employees.map((emp) => (
+								<Card key={emp.id} className={emp.isActive ? '' : 'opacity-50'}>
+									<CardContent className="p-4">
+										<div className="flex justify-between items-start">
+											<div>
+												<p className="font-semibold">{emp.name}</p>
+												<p className="text-sm text-muted-foreground">
+													{emp.department || '-'} · {emp.position || '-'}
+												</p>
+												<p className="text-xs text-muted-foreground mt-0.5">
+													연차 {emp.totalLeaves}일 · 사용 {emp.usedLeaves}일 · 잔여{' '}
+													{emp.totalLeaves - emp.usedLeaves}일
+												</p>
+											</div>
+											<div className="flex flex-col items-end gap-2">
+												<Badge
+													className={
+														emp.isActive
+															? 'bg-green-100 text-green-800 hover:bg-green-100'
+															: 'bg-slate-100 text-slate-600 hover:bg-slate-100'
+													}
+												>
+													{emp.isActive ? '활성' : '비활성'}
+												</Badge>
+												<div className="flex items-center gap-1">
+													<Button
+														size="icon"
+														variant="ghost"
+														className="h-7 w-7"
+														onClick={() => handleEditOpen(emp)}
+													>
+														<Pencil className="h-3.5 w-3.5" />
+													</Button>
 													<Switch
-														size="small"
 														checked={emp.isActive}
-														onChange={() => handleToggleActive(emp)}
+														onCheckedChange={() => handleToggleActive(emp)}
 													/>
-												</Box>
+												</div>
+											</div>
+										</div>
+									</CardContent>
+								</Card>
+							))
+						)}
+					</div>
+				) : (
+					/* 데스크탑: 테이블 */
+					<Card>
+						<CardContent className="p-4">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>이름</TableHead>
+										<TableHead>이메일</TableHead>
+										<TableHead>부서</TableHead>
+										<TableHead>직급</TableHead>
+										<TableHead>입사일</TableHead>
+										<TableHead>연차 (총/사용/잔여)</TableHead>
+										<TableHead>상태</TableHead>
+										<TableHead>작업</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{!employees || employees.length === 0 ? (
+										<TableRow>
+											<TableCell colSpan={8} className="text-center text-muted-foreground">
+												직원이 없습니다.
 											</TableCell>
 										</TableRow>
-									))
-								)}
-							</TableBody>
-						</Table>
-					</TableContainer>
-				</CardContent>
-			</Card>
+									) : (
+										employees.map((emp) => (
+											<TableRow key={emp.id} className={emp.isActive ? '' : 'opacity-50'}>
+												<TableCell>{emp.name}</TableCell>
+												<TableCell>{emp.email}</TableCell>
+												<TableCell>{emp.department || '-'}</TableCell>
+												<TableCell>{emp.position || '-'}</TableCell>
+												<TableCell>{dayjs(emp.hireDate).format('YYYY-MM-DD')}</TableCell>
+												<TableCell>
+													{emp.totalLeaves} / {emp.usedLeaves} / {emp.totalLeaves - emp.usedLeaves}
+												</TableCell>
+												<TableCell>
+													<Badge
+														className={
+															emp.isActive
+																? 'bg-green-100 text-green-800 hover:bg-green-100'
+																: 'bg-slate-100 text-slate-600 hover:bg-slate-100'
+														}
+													>
+														{emp.isActive ? '활성' : '비활성'}
+													</Badge>
+												</TableCell>
+												<TableCell>
+													<div className="flex items-center gap-2">
+														<Button
+															size="icon"
+															variant="ghost"
+															className="h-7 w-7"
+															onClick={() => handleEditOpen(emp)}
+														>
+															<Pencil className="h-3.5 w-3.5" />
+														</Button>
+														<Switch
+															checked={emp.isActive}
+															onCheckedChange={() => handleToggleActive(emp)}
+														/>
+													</div>
+												</TableCell>
+											</TableRow>
+										))
+									)}
+								</TableBody>
+							</Table>
+						</CardContent>
+					</Card>
+				)}
 
-			{/* 직원 추가 Dialog */}
-			<Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
-				<DialogTitle>직원 추가</DialogTitle>
-				<DialogContent>
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-						<TextField
-							label="아이디 *"
-							fullWidth
-							value={form.loginId}
-							onChange={(e) => setForm({ ...form, loginId: e.target.value })}
-							placeholder="영문/숫자 조합 권장"
-						/>
-						<TextField
-							label="이름 *"
-							fullWidth
-							value={form.name}
-							onChange={(e) => setForm({ ...form, name: e.target.value })}
-						/>
-						<TextField
-							label="이메일 *"
-							type="email"
-							fullWidth
-							value={form.email}
-							onChange={(e) => setForm({ ...form, email: e.target.value })}
-						/>
-						<TextField
-							label="비밀번호 * (8자 이상)"
-							type="password"
-							fullWidth
-							value={form.password}
-							onChange={(e) => setForm({ ...form, password: e.target.value })}
-						/>
-						<TextField
-							label="부서"
-							fullWidth
-							value={form.department}
-							onChange={(e) => setForm({ ...form, department: e.target.value })}
-						/>
-						<TextField
-							label="직급"
-							fullWidth
-							value={form.position}
-							onChange={(e) => setForm({ ...form, position: e.target.value })}
-						/>
-						<TextField
-							label="입사일"
-							type="date"
-							fullWidth
-							value={form.hireDate}
-							onChange={(e) => setForm({ ...form, hireDate: e.target.value })}
-							slotProps={{ inputLabel: { shrink: true } }}
-						/>
-						<TextField
-							label="연간 연차 일수"
-							type="number"
-							fullWidth
-							value={form.totalLeaves}
-							onChange={(e) => setForm({ ...form, totalLeaves: e.target.value })}
-						/>
-					</Box>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={() => setAddOpen(false)}>취소</Button>
-					<Button variant="contained" onClick={handleAdd} disabled={createMutation.isPending}>
-						추가
-					</Button>
-				</DialogActions>
-			</Dialog>
+				{/* 직원 추가 Dialog */}
+				<Dialog open={addOpen} onOpenChange={setAddOpen}>
+					<DialogContent className="sm:max-w-md">
+						<DialogHeader>
+							<DialogTitle>직원 추가</DialogTitle>
+						</DialogHeader>
+						<div className="flex flex-col gap-3 py-2">
+							{[
+								{ id: 'name', label: '이름 *', type: 'text', key: 'name' as keyof EmployeeForm },
+								{
+									id: 'email',
+									label: '이메일 *',
+									type: 'email',
+									key: 'email' as keyof EmployeeForm,
+								},
+								{
+									id: 'password',
+									label: '비밀번호 * (8자 이상)',
+									type: 'password',
+									key: 'password' as keyof EmployeeForm,
+								},
+								{
+									id: 'department',
+									label: '부서',
+									type: 'text',
+									key: 'department' as keyof EmployeeForm,
+								},
+								{
+									id: 'position',
+									label: '직급',
+									type: 'text',
+									key: 'position' as keyof EmployeeForm,
+								},
+							].map(({ id, label, type, key }) => (
+								<div key={id} className="space-y-1.5">
+									<Label htmlFor={id}>{label}</Label>
+									<Input
+										id={id}
+										type={type}
+										value={form[key]}
+										onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+									/>
+								</div>
+							))}
+							<div className="space-y-1.5">
+								<Label htmlFor="hireDate">입사일</Label>
+								<Input
+									id="hireDate"
+									type="date"
+									value={form.hireDate}
+									onChange={(e) => setForm({ ...form, hireDate: e.target.value })}
+								/>
+							</div>
+							<div className="space-y-1.5">
+								<Label htmlFor="totalLeaves">연간 연차 일수</Label>
+								<Input
+									id="totalLeaves"
+									type="number"
+									value={form.totalLeaves}
+									onChange={(e) => setForm({ ...form, totalLeaves: e.target.value })}
+								/>
+							</div>
+						</div>
+						<DialogFooter>
+							<Button variant="outline" onClick={() => setAddOpen(false)}>
+								취소
+							</Button>
+							<Button onClick={handleAdd} disabled={createMutation.isPending}>
+								추가
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
 
-			{/* 직원 수정 Dialog */}
-			<Dialog open={!!editTarget} onClose={() => setEditTarget(null)} maxWidth="sm" fullWidth>
-				<DialogTitle>직원 정보 수정</DialogTitle>
-				<DialogContent>
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-						<TextField
-							label="이름"
-							fullWidth
-							value={editForm.name ?? ''}
-							onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-						/>
-						<TextField
-							label="부서"
-							fullWidth
-							value={editForm.department ?? ''}
-							onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-						/>
-						<TextField
-							label="직급"
-							fullWidth
-							value={editForm.position ?? ''}
-							onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
-						/>
-						<TextField
-							label="입사일"
-							type="date"
-							fullWidth
-							value={editForm.hireDate ?? ''}
-							onChange={(e) => setEditForm({ ...editForm, hireDate: e.target.value })}
-							slotProps={{ inputLabel: { shrink: true } }}
-						/>
-						<TextField
-							label="연간 연차 일수"
-							type="number"
-							fullWidth
-							value={editForm.totalLeaves ?? ''}
-							onChange={(e) => setEditForm({ ...editForm, totalLeaves: e.target.value })}
-						/>
-					</Box>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={() => setEditTarget(null)}>취소</Button>
-					<Button variant="contained" onClick={handleEdit} disabled={updateMutation.isPending}>
-						저장
-					</Button>
-				</DialogActions>
-			</Dialog>
-		</Box>
+				{/* 직원 수정 Dialog */}
+				<Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+					<DialogContent className="sm:max-w-md">
+						<DialogHeader>
+							<DialogTitle>직원 정보 수정</DialogTitle>
+						</DialogHeader>
+						<div className="flex flex-col gap-3 py-2">
+							{[
+								{ id: 'editName', label: '이름', key: 'name' as keyof EmployeeForm },
+								{ id: 'editDept', label: '부서', key: 'department' as keyof EmployeeForm },
+								{ id: 'editPos', label: '직급', key: 'position' as keyof EmployeeForm },
+							].map(({ id, label, key }) => (
+								<div key={id} className="space-y-1.5">
+									<Label htmlFor={id}>{label}</Label>
+									<Input
+										id={id}
+										value={editForm[key] ?? ''}
+										onChange={(e) => setEditForm({ ...editForm, [key]: e.target.value })}
+									/>
+								</div>
+							))}
+							<div className="space-y-1.5">
+								<Label htmlFor="editHireDate">입사일</Label>
+								<Input
+									id="editHireDate"
+									type="date"
+									value={editForm.hireDate ?? ''}
+									onChange={(e) => setEditForm({ ...editForm, hireDate: e.target.value })}
+								/>
+							</div>
+							<div className="space-y-1.5">
+								<Label htmlFor="editTotalLeaves">연간 연차 일수</Label>
+								<Input
+									id="editTotalLeaves"
+									type="number"
+									value={editForm.totalLeaves ?? ''}
+									onChange={(e) => setEditForm({ ...editForm, totalLeaves: e.target.value })}
+								/>
+							</div>
+						</div>
+						<DialogFooter>
+							<Button variant="outline" onClick={() => setEditTarget(null)}>
+								취소
+							</Button>
+							<Button onClick={handleEdit} disabled={updateMutation.isPending}>
+								저장
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
+			</div>
+		</PageTransition>
 	);
 }

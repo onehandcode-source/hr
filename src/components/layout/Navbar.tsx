@@ -1,21 +1,18 @@
 'use client';
 
 import { signOut, useSession } from 'next-auth/react';
-import {
-	AppBar,
-	Toolbar,
-	Box,
-	Avatar,
-	Menu,
-	MenuItem,
-	IconButton,
-	Typography,
-	Divider,
-} from '@mui/material';
 import { useState } from 'react';
-import MenuIcon from '@mui/icons-material/Menu';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { Menu, ChevronDown, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
@@ -24,118 +21,65 @@ interface NavbarProps {
 
 export default function Navbar({ onMenuClick }: NavbarProps) {
 	const { data: session } = useSession();
-	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
 	const handleLogout = async () => {
-		setAnchorEl(null);
 		await signOut({ callbackUrl: '/login' });
 	};
 
 	return (
-		<AppBar
-			position="fixed"
-			elevation={0}
-			sx={{
-				width: { sm: 'calc(100% - 240px)' },
-				ml: { sm: '240px' },
-				bgcolor: 'rgba(248, 250, 252, 0.85)',
-				backdropFilter: 'blur(12px)',
-				borderBottom: '1px solid #e2e8f0',
-				color: 'text.primary',
-			}}
-		>
-			<Toolbar sx={{ gap: 2, minHeight: { xs: 56, sm: 64 } }}>
-				{/* 모바일 햄버거 */}
-				<IconButton
-					edge="start"
-					onClick={onMenuClick}
-					sx={{ display: { sm: 'none' }, color: 'text.secondary' }}
-				>
-					<MenuIcon />
-				</IconButton>
+		<header className="fixed top-0 right-0 left-0 sm:left-60 z-30 h-14 sm:h-16 flex items-center gap-2 px-4 bg-[rgba(248,250,252,0.85)] backdrop-blur-md border-b border-slate-200">
+			{/* 모바일 햄버거 */}
+			<Button
+				variant="ghost"
+				size="icon"
+				className="sm:hidden text-slate-500"
+				onClick={onMenuClick}
+			>
+				<Menu className="h-5 w-5" />
+			</Button>
 
-				<Box sx={{ flexGrow: 1 }} />
+			<div className="flex-1" />
 
-				{/* 알림 벨 */}
-				{session && <NotificationBell />}
+			{/* 알림 벨 */}
+			{session && <NotificationBell />}
 
-				{/* 우측 유저 영역 */}
-				{session && (
-					<Box
-						onClick={(e) => setAnchorEl(e.currentTarget)}
-						sx={{
-							display: 'flex',
-							alignItems: 'center',
-							gap: 1,
-							cursor: 'pointer',
-							px: 1.5,
-							py: 0.75,
-							borderRadius: 2,
-							border: '1px solid #e2e8f0',
-							bgcolor: '#fff',
-							'&:hover': { bgcolor: '#f8fafc' },
-							transition: 'all 0.15s ease',
-						}}
-					>
-						<Avatar
-							sx={{
-								width: 28,
-								height: 28,
-								bgcolor: 'primary.main',
-								fontSize: '0.75rem',
-								fontWeight: 700,
-							}}
+			{/* 유저 드롭다운 */}
+			{session && (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+							<Avatar className="h-7 w-7">
+								<AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+									{session.user.name?.[0] ?? 'U'}
+								</AvatarFallback>
+							</Avatar>
+							<div className="hidden sm:block text-left">
+								<p className="text-[0.8rem] font-semibold leading-tight text-slate-900">
+									{session.user.name}
+								</p>
+								<p className="text-[0.7rem] text-slate-500 leading-tight">
+									{session.user.role === 'ADMIN' ? '관리자' : '직원'}
+								</p>
+							</div>
+							<ChevronDown className="h-4 w-4 text-slate-400" />
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end" className="w-52">
+						<DropdownMenuLabel>
+							<p className="font-semibold text-sm">{session.user.name}</p>
+							<p className="text-xs text-muted-foreground font-normal">{session.user.email}</p>
+						</DropdownMenuLabel>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem
+							onClick={handleLogout}
+							className="text-destructive focus:text-destructive gap-2"
 						>
-							{session.user.name?.[0] ?? 'U'}
-						</Avatar>
-						<Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-							<Typography
-								sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1.2, color: 'text.primary' }}
-							>
-								{session.user.name}
-							</Typography>
-							<Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', lineHeight: 1.2 }}>
-								{session.user.role === 'ADMIN' ? '관리자' : '직원'}
-							</Typography>
-						</Box>
-						<KeyboardArrowDownIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-					</Box>
-				)}
-
-				<Menu
-					anchorEl={anchorEl}
-					open={Boolean(anchorEl)}
-					onClose={() => setAnchorEl(null)}
-					transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-					anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-					PaperProps={{
-						sx: {
-							mt: 1,
-							minWidth: 200,
-							borderRadius: 2,
-							border: '1px solid #e2e8f0',
-							boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.07)',
-						},
-					}}
-				>
-					<Box sx={{ px: 2, py: 1.5 }}>
-						<Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-							{session?.user.name}
-						</Typography>
-						<Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-							{session?.user.email}
-						</Typography>
-					</Box>
-					<Divider />
-					<MenuItem
-						onClick={handleLogout}
-						sx={{ gap: 1.5, color: 'error.main', fontSize: '0.875rem', mt: 0.5 }}
-					>
-						<LogoutIcon fontSize="small" />
-						로그아웃
-					</MenuItem>
-				</Menu>
-			</Toolbar>
-		</AppBar>
+							<LogOut className="h-4 w-4" />
+							로그아웃
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			)}
+		</header>
 	);
 }

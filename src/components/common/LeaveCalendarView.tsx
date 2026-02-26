@@ -5,23 +5,18 @@ import { Calendar, dayjsLocalizer, Views } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
+import { CalendarDays, List } from 'lucide-react';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
-	Box,
-	ToggleButton,
-	ToggleButtonGroup,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
+	TableHeader,
 	TableRow,
-	Chip,
-	Paper,
-	Typography,
-	useMediaQuery,
-} from '@mui/material';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ListAltIcon from '@mui/icons-material/ListAlt';
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 dayjs.locale('ko');
 const localizer = dayjsLocalizer(dayjs);
@@ -61,7 +56,6 @@ const CALENDAR_MESSAGES = {
 	showMore: (total: number) => `+${total}개 더보기`,
 };
 
-// 부서별 색상 (모듈 외부에서 관리하면 SSR 문제 발생할 수 있으므로 함수로 처리)
 const COLOR_PALETTE = [
 	'#1976d2',
 	'#388e3c',
@@ -97,7 +91,7 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 	const [calendarView, setCalendarView] = useState<(typeof Views)[keyof typeof Views]>(Views.MONTH);
 	const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
 
-	const isMobile = useMediaQuery('(max-width:600px)');
+	const isMobile = useIsMobile();
 
 	useEffect(() => {
 		if (isMobile) {
@@ -108,7 +102,6 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 
 	const deptColorMap = useMemo(() => buildDeptColorMap(leaves), [leaves]);
 
-	// react-big-calendar는 end가 exclusive → 하루 추가
 	const events: CalendarEvent[] = useMemo(
 		() =>
 			leaves.map((leave) => ({
@@ -121,7 +114,6 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 		[leaves],
 	);
 
-	// 현재 캘린더 표시 월의 연차만 목록에 표시 (연동)
 	const filteredLeaves = useMemo(() => {
 		const month = dayjs(calendarDate);
 		return leaves.filter((leave) => {
@@ -154,39 +146,33 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 
 	const handleRowClick = (leave: LeaveEvent) => {
 		setSelectedId(leave.id);
-		// 캘린더 뷰로 전환하고 해당 날짜로 이동
 		setCalendarDate(new Date(leave.startDate));
 		setViewMode('calendar');
 	};
 
 	return (
-		<Box>
-			<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-				{title && (
-					<Typography variant="body2" color="text.secondary">
-						{title}
-					</Typography>
-				)}
-				<ToggleButtonGroup
+		<div>
+			<div className="flex justify-between items-center mb-3">
+				{title && <p className="text-sm text-muted-foreground">{title}</p>}
+				<ToggleGroup
+					type="single"
 					value={viewMode}
-					exclusive
-					onChange={(_, v) => v && setViewMode(v)}
-					size="small"
-					sx={{ ml: 'auto' }}
+					onValueChange={(v) => v && setViewMode(v as 'calendar' | 'list')}
+					className="ml-auto"
 				>
-					<ToggleButton value="calendar">
-						<CalendarMonthIcon fontSize="small" sx={{ mr: { xs: 0, sm: 0.5 } }} />
-						<Box sx={{ display: { xs: 'none', sm: 'block' } }}>캘린더</Box>
-					</ToggleButton>
-					<ToggleButton value="list">
-						<ListAltIcon fontSize="small" sx={{ mr: { xs: 0, sm: 0.5 } }} />
-						<Box sx={{ display: { xs: 'none', sm: 'block' } }}>목록</Box>
-					</ToggleButton>
-				</ToggleButtonGroup>
-			</Box>
+					<ToggleGroupItem value="calendar" className="gap-1.5 text-xs">
+						<CalendarDays className="h-3.5 w-3.5" />
+						<span className="hidden sm:inline">캘린더</span>
+					</ToggleGroupItem>
+					<ToggleGroupItem value="list" className="gap-1.5 text-xs">
+						<List className="h-3.5 w-3.5" />
+						<span className="hidden sm:inline">목록</span>
+					</ToggleGroupItem>
+				</ToggleGroup>
+			</div>
 
 			{viewMode === 'calendar' ? (
-				<Box sx={{ height: { xs: 450, sm: 600 } }}>
+				<div className="h-[450px] sm:h-[600px]">
 					<Calendar
 						localizer={localizer}
 						events={events}
@@ -203,27 +189,27 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 						style={{ height: '100%' }}
 						popup
 					/>
-				</Box>
+				</div>
 			) : (
 				<>
-					<Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+					<p className="text-xs text-muted-foreground mb-2">
 						{dayjs(calendarDate).format('YYYY년 MM월')} 기준 · 행 클릭 시 캘린더로 이동
-					</Typography>
-					<TableContainer component={Paper} variant="outlined">
-						<Table size="small">
-							<TableHead>
+					</p>
+					<div className="rounded-md border border-slate-200">
+						<Table>
+							<TableHeader>
 								<TableRow>
-									<TableCell>직원명</TableCell>
-									<TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>부서</TableCell>
-									<TableCell>시작일</TableCell>
-									<TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>종료일</TableCell>
-									<TableCell>일수</TableCell>
+									<TableHead>직원명</TableHead>
+									<TableHead className="hidden sm:table-cell">부서</TableHead>
+									<TableHead>시작일</TableHead>
+									<TableHead className="hidden sm:table-cell">종료일</TableHead>
+									<TableHead>일수</TableHead>
 								</TableRow>
-							</TableHead>
+							</TableHeader>
 							<TableBody>
 								{filteredLeaves.length === 0 ? (
 									<TableRow>
-										<TableCell colSpan={5} align="center">
+										<TableCell colSpan={5} className="text-center text-muted-foreground">
 											해당 월에 승인된 연차가 없습니다.
 										</TableCell>
 									</TableRow>
@@ -234,39 +220,38 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 											<TableRow
 												key={leave.id}
 												ref={isSelected ? selectedRowRef : null}
-												hover
-												selected={isSelected}
 												onClick={() => handleRowClick(leave)}
-												sx={{ cursor: 'pointer' }}
+												className={`cursor-pointer ${isSelected ? 'bg-primary/5' : ''}`}
 											>
 												<TableCell>
 													{leave.user.name}
-													<Box sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.3 }}>
-														<Chip
-															label={leave.user.department}
-															size="small"
-															sx={{
-																bgcolor: deptColorMap[leave.user.department] ?? '#1976d2',
+													<div className="sm:hidden mt-0.5">
+														<Badge
+															style={{
+																backgroundColor:
+																	deptColorMap[leave.user.department] ?? '#1976d2',
 																color: '#fff',
-																fontSize: '10px',
-																height: '18px',
 															}}
-														/>
-													</Box>
+															className="text-[10px] h-4 px-1"
+														>
+															{leave.user.department}
+														</Badge>
+													</div>
 												</TableCell>
-												<TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-													<Chip
-														label={leave.user.department}
-														size="small"
-														sx={{
-															bgcolor: deptColorMap[leave.user.department] ?? '#1976d2',
+												<TableCell className="hidden sm:table-cell">
+													<Badge
+														style={{
+															backgroundColor:
+																deptColorMap[leave.user.department] ?? '#1976d2',
 															color: '#fff',
-															fontSize: '11px',
 														}}
-													/>
+														className="text-[11px]"
+													>
+														{leave.user.department}
+													</Badge>
 												</TableCell>
 												<TableCell>{dayjs(leave.startDate).format('YYYY-MM-DD')}</TableCell>
-												<TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+												<TableCell className="hidden sm:table-cell">
 													{dayjs(leave.endDate).format('YYYY-MM-DD')}
 												</TableCell>
 												<TableCell>{leave.days}일</TableCell>
@@ -276,9 +261,9 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 								)}
 							</TableBody>
 						</Table>
-					</TableContainer>
+					</div>
 				</>
 			)}
-		</Box>
+		</div>
 	);
 }

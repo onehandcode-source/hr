@@ -2,19 +2,9 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-	IconButton,
-	Badge,
-	Popover,
-	Box,
-	Typography,
-	List,
-	ListItem,
-	ListItemText,
-	Divider,
-	Button,
-} from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+import { Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
@@ -32,7 +22,7 @@ interface Notification {
 }
 
 export default function NotificationBell() {
-	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+	const [open, setOpen] = useState(false);
 	const queryClient = useQueryClient();
 
 	const { data } = useQuery({
@@ -57,114 +47,60 @@ export default function NotificationBell() {
 	const unreadCount = data?.unreadCount ?? 0;
 	const notifications = data?.notifications ?? [];
 
-	const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
-		setAnchorEl(e.currentTarget);
-	};
-
-	const handleClose = () => {
-		setAnchorEl(null);
-	};
-
-	const handleNotificationClick = (notif: Notification) => {
-		if (!notif.isRead) {
-			readMutation.mutate(notif.id);
-		}
-	};
-
 	return (
-		<>
-			<IconButton onClick={handleOpen} sx={{ color: 'text.secondary' }}>
-				<Badge badgeContent={unreadCount} color="error" max={99}>
-					<NotificationsIcon />
-				</Badge>
-			</IconButton>
-
-			<Popover
-				open={Boolean(anchorEl)}
-				anchorEl={anchorEl}
-				onClose={handleClose}
-				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-				PaperProps={{
-					sx: {
-						mt: 1,
-						width: 360,
-						maxHeight: 480,
-						borderRadius: 2,
-						border: '1px solid #e2e8f0',
-						boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.07)',
-					},
-				}}
-			>
-				<Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #e2e8f0' }}>
-					<Typography fontWeight={600} fontSize="0.9rem">
-						알림 {unreadCount > 0 && `(${unreadCount}개 미읽음)`}
-					</Typography>
-				</Box>
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>
+				<Button variant="ghost" size="icon" className="relative text-slate-500">
+					<Bell className="h-5 w-5" />
+					{unreadCount > 0 && (
+						<span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive" />
+					)}
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent align="end" className="w-80 sm:w-96 p-0 max-h-[480px] overflow-hidden flex flex-col">
+				<div className="px-4 py-3 border-b border-slate-100">
+					<p className="font-semibold text-sm">
+						알림 {unreadCount > 0 && <span className="text-primary">({unreadCount}개 미읽음)</span>}
+					</p>
+				</div>
 
 				{notifications.length === 0 ? (
-					<Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
-						<Typography color="text.secondary" fontSize="0.875rem">
-							알림이 없습니다.
-						</Typography>
-					</Box>
+					<div className="px-4 py-8 text-center text-sm text-muted-foreground">
+						알림이 없습니다.
+					</div>
 				) : (
-					<List disablePadding sx={{ overflowY: 'auto', maxHeight: 400 }}>
+					<ul className="overflow-y-auto">
 						{notifications.map((notif, idx) => (
-							<Box key={notif.id}>
-								<ListItem
-									onClick={() => handleNotificationClick(notif)}
-									sx={{
-										py: 1.5,
-										px: 2,
-										cursor: 'pointer',
-										bgcolor: notif.isRead ? 'transparent' : 'rgba(99, 102, 241, 0.05)',
-										'&:hover': { bgcolor: '#f8fafc' },
-										alignItems: 'flex-start',
+							<li key={notif.id}>
+								<button
+									onClick={() => {
+										if (!notif.isRead) readMutation.mutate(notif.id);
 									}}
+									className="w-full text-left px-4 py-3 flex gap-2 hover:bg-slate-50 transition-colors"
+									style={{ backgroundColor: notif.isRead ? undefined : 'rgba(99,102,241,0.05)' }}
 								>
 									{!notif.isRead && (
-										<Box
-											sx={{
-												width: 6,
-												height: 6,
-												borderRadius: '50%',
-												bgcolor: 'primary.main',
-												mt: 0.75,
-												mr: 1,
-												flexShrink: 0,
-											}}
-										/>
+										<span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
 									)}
-									<ListItemText
-										primary={
-											<Typography
-												fontSize="0.8rem"
-												fontWeight={notif.isRead ? 400 : 600}
-												color="text.primary"
-											>
-												{notif.title}
-											</Typography>
-										}
-										secondary={
-											<Box>
-												<Typography fontSize="0.75rem" color="text.secondary" sx={{ mt: 0.25 }}>
-													{notif.message}
-												</Typography>
-												<Typography fontSize="0.7rem" color="text.disabled" sx={{ mt: 0.5 }}>
-													{dayjs(notif.createdAt).fromNow()}
-												</Typography>
-											</Box>
-										}
-										sx={{ ml: notif.isRead ? 0 : 0 }}
-									/>
-								</ListItem>
-								{idx < notifications.length - 1 && <Divider sx={{ borderColor: '#f1f5f9' }} />}
-							</Box>
+									<div className={notif.isRead ? '' : 'ml-0'}>
+										<p
+											className="text-[0.8rem] text-slate-900 leading-snug"
+											style={{ fontWeight: notif.isRead ? 400 : 600 }}
+										>
+											{notif.title}
+										</p>
+										<p className="text-[0.75rem] text-slate-500 mt-0.5">{notif.message}</p>
+										<p className="text-[0.7rem] text-slate-400 mt-1">
+											{dayjs(notif.createdAt).fromNow()}
+										</p>
+									</div>
+								</button>
+								{idx < notifications.length - 1 && <div className="border-b border-slate-100" />}
+							</li>
 						))}
-					</List>
+					</ul>
 				)}
-			</Popover>
-		</>
+			</PopoverContent>
+		</Popover>
 	);
 }

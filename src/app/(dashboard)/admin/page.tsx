@@ -3,22 +3,20 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
-	Box,
-	Typography,
-	Grid,
-	Card,
-	CardContent,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
+	TableHeader,
 	TableRow,
-	Chip,
-} from '@mui/material';
+} from '@/components/ui/table';
 import { formatDateKorean } from '@/lib/utils/date';
 import LeaveCalendarView from '@/components/common/LeaveCalendarView';
+import PageTransition from '@/components/common/PageTransition';
 
 interface LeaveEvent {
 	id: string;
@@ -30,6 +28,22 @@ interface LeaveEvent {
 		department: string;
 	};
 }
+
+const statusClass: Record<string, string> = {
+	PENDING: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+	APPROVED: 'bg-green-100 text-green-800 hover:bg-green-100',
+	REJECTED: 'bg-red-100 text-red-800 hover:bg-red-100',
+};
+const statusText: Record<string, string> = {
+	PENDING: '대기중',
+	APPROVED: '승인',
+	REJECTED: '거부',
+};
+
+const cardVariants = {
+	hidden: { opacity: 0, y: 12 },
+	visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.25 } }),
+};
 
 export default function AdminDashboard() {
 	const {
@@ -59,95 +73,49 @@ export default function AdminDashboard() {
 	}, [error]);
 
 	if (isLoading) {
-		return <Typography>로딩 중...</Typography>;
+		return <p className="text-muted-foreground">로딩 중...</p>;
 	}
 
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case 'PENDING':
-				return 'warning';
-			case 'APPROVED':
-				return 'success';
-			case 'REJECTED':
-				return 'error';
-			default:
-				return 'default';
-		}
-	};
-
-	const getStatusText = (status: string) => {
-		switch (status) {
-			case 'PENDING':
-				return '대기중';
-			case 'APPROVED':
-				return '승인';
-			case 'REJECTED':
-				return '거부';
-			default:
-				return status;
-		}
-	};
+	const statCards = [
+		{ label: '총 직원 수', value: stats?.totalEmployees || 0 },
+		{ label: '대기 중인 연차 신청', value: stats?.pendingLeaves || 0 },
+		{ label: '완료된 평가', value: stats?.completedEvaluations || 0 },
+	];
 
 	return (
-		<Box>
-			<Typography variant="h4" component="h1" gutterBottom>
-				관리자 대시보드
-			</Typography>
+		<PageTransition>
+			<div>
+				<h1 className="text-2xl font-bold mb-6">관리자 대시보드</h1>
 
-			<Grid container spacing={3} sx={{ mt: 2 }}>
-				<Grid size={{ xs: 12, md: 4 }}>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+					{statCards.map((card, i) => (
+						<motion.div key={card.label} custom={i} variants={cardVariants} initial="hidden" animate="visible">
+							<Card>
+								<CardContent className="p-6">
+									<p className="text-sm text-muted-foreground mb-1">{card.label}</p>
+									<p className="text-4xl font-bold">{card.value}</p>
+								</CardContent>
+							</Card>
+						</motion.div>
+					))}
+				</div>
+
+				<div className="mb-6">
+					<h2 className="text-base font-semibold mb-3">최근 연차 신청</h2>
 					<Card>
-						<CardContent>
-							<Typography color="text.secondary" gutterBottom>
-								총 직원 수
-							</Typography>
-							<Typography variant="h3">{stats?.totalEmployees || 0}</Typography>
-						</CardContent>
-					</Card>
-				</Grid>
-
-				<Grid size={{ xs: 12, md: 4 }}>
-					<Card>
-						<CardContent>
-							<Typography color="text.secondary" gutterBottom>
-								대기 중인 연차 신청
-							</Typography>
-							<Typography variant="h3">{stats?.pendingLeaves || 0}</Typography>
-						</CardContent>
-					</Card>
-				</Grid>
-
-				<Grid size={{ xs: 12, md: 4 }}>
-					<Card>
-						<CardContent>
-							<Typography color="text.secondary" gutterBottom>
-								완료된 평가
-							</Typography>
-							<Typography variant="h3">{stats?.completedEvaluations || 0}</Typography>
-						</CardContent>
-					</Card>
-				</Grid>
-			</Grid>
-
-			<Box sx={{ mt: 4 }}>
-				<Typography variant="h6" gutterBottom>
-					최근 연차 신청
-				</Typography>
-				<Card>
-					<CardContent>
-						{stats?.recentLeaves && stats.recentLeaves.length > 0 ? (
-							<TableContainer>
+						<CardContent className="p-4">
+							{stats?.recentLeaves && stats.recentLeaves.length > 0 ? (
 								<Table>
-									<TableHead>
+									<TableHeader>
 										<TableRow>
-											<TableCell>직원명</TableCell>
-											<TableCell>부서</TableCell>
-											<TableCell>시작일</TableCell>
-											<TableCell>종료일</TableCell>
-											<TableCell>일수</TableCell>
-											<TableCell>상태</TableCell>
+											<TableHead>직원명</TableHead>
+											<TableHead>부서</TableHead>
+											<TableHead>시작일</TableHead>
+											<TableHead>종료일</TableHead>
+											<TableHead>일수</TableHead>
+											<TableHead>상태</TableHead>
 										</TableRow>
-									</TableHead>
+									</TableHeader>
 									<TableBody>
 										{stats.recentLeaves.map((leave: any) => (
 											<TableRow key={leave.id}>
@@ -157,35 +125,30 @@ export default function AdminDashboard() {
 												<TableCell>{formatDateKorean(new Date(leave.endDate))}</TableCell>
 												<TableCell>{leave.days}일</TableCell>
 												<TableCell>
-													<Chip
-														label={getStatusText(leave.status)}
-														color={getStatusColor(leave.status)}
-														size="small"
-													/>
+													<Badge className={statusClass[leave.status] ?? ''}>
+														{statusText[leave.status] ?? leave.status}
+													</Badge>
 												</TableCell>
 											</TableRow>
 										))}
 									</TableBody>
 								</Table>
-							</TableContainer>
-						) : (
-							<Typography color="text.secondary">최근 연차 신청이 없습니다.</Typography>
-						)}
-					</CardContent>
-				</Card>
-			</Box>
+							) : (
+								<p className="text-sm text-muted-foreground">최근 연차 신청이 없습니다.</p>
+							)}
+						</CardContent>
+					</Card>
+				</div>
 
-			{/* 전체 직원 일정 */}
-			<Box sx={{ mt: 4 }}>
-				<Typography variant="h6" gutterBottom>
-					전체 직원 일정
-				</Typography>
-				<Card>
-					<CardContent>
-						<LeaveCalendarView leaves={allLeaves ?? []} title="승인된 연차 현황" />
-					</CardContent>
-				</Card>
-			</Box>
-		</Box>
+				<div>
+					<h2 className="text-base font-semibold mb-3">전체 직원 일정</h2>
+					<Card>
+						<CardContent className="p-4">
+							<LeaveCalendarView leaves={allLeaves ?? []} title="승인된 연차 현황" />
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+		</PageTransition>
 	);
 }

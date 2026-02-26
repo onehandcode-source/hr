@@ -452,14 +452,6 @@ async function main() {
       },
     }),
   ]);
-  console.log('✅ Dental hygienist evaluation items created:', dhItems.length);
-
-  console.log('🎉 Seed data created successfully!');
-  console.log('\n📋 Test Accounts:');
-  console.log('Admin: admin@company.com / admin123');
-  console.log('Employee: john@company.com / password123');
-  console.log('Employee: jane@company.com / password123');
-  console.log('Employee: mike@company.com / password123');
 }
 
 main()

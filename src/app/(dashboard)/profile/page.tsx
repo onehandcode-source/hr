@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Box, Typography, Card, CardContent, TextField, Button, Divider } from '@mui/material';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import PageTransition from '@/components/common/PageTransition';
 
 export default function ProfilePage() {
 	const { data: session } = useSession();
@@ -58,98 +63,84 @@ export default function ProfilePage() {
 	};
 
 	return (
-		<Box>
-			<Typography variant="h4" component="h1" gutterBottom>
-				프로필
-			</Typography>
+		<PageTransition>
+			<div>
+				<h1 className="text-2xl font-bold mb-6">프로필</h1>
 
-			{/* 기본 정보 카드 */}
-			<Card sx={{ mb: 3 }}>
-				<CardContent>
-					<Typography variant="h6" gutterBottom>
-						기본 정보
-					</Typography>
-					<Divider sx={{ mb: 2 }} />
-					<Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-						<Box sx={{ display: 'flex', gap: 2 }}>
-							<Typography color="text.secondary" sx={{ minWidth: 80 }}>
-								이름
-							</Typography>
-							<Typography fontWeight={600}>{session?.user?.name}</Typography>
-						</Box>
-						<Box sx={{ display: 'flex', gap: 2 }}>
-							<Typography color="text.secondary" sx={{ minWidth: 80 }}>
-								이메일
-							</Typography>
-							<Typography>{session?.user?.email}</Typography>
-						</Box>
-						<Box sx={{ display: 'flex', gap: 2 }}>
-							<Typography color="text.secondary" sx={{ minWidth: 80 }}>
-								부서
-							</Typography>
-							<Typography>{session?.user?.department || '-'}</Typography>
-						</Box>
-						<Box sx={{ display: 'flex', gap: 2 }}>
-							<Typography color="text.secondary" sx={{ minWidth: 80 }}>
-								직급
-							</Typography>
-							<Typography>{session?.user?.position || '-'}</Typography>
-						</Box>
-						<Box sx={{ display: 'flex', gap: 2 }}>
-							<Typography color="text.secondary" sx={{ minWidth: 80 }}>
-								권한
-							</Typography>
-							<Typography>{session?.user?.role === 'ADMIN' ? '관리자' : '직원'}</Typography>
-						</Box>
-					</Box>
-				</CardContent>
-			</Card>
+				{/* 기본 정보 */}
+				<Card className="mb-4">
+					<CardContent className="p-6">
+						<h2 className="text-base font-semibold mb-3">기본 정보</h2>
+						<Separator className="mb-4" />
+						<div className="flex flex-col gap-3">
+							{[
+								{ label: '이름', value: session?.user?.name },
+								{ label: '이메일', value: session?.user?.email },
+								{ label: '부서', value: session?.user?.department || '-' },
+								{ label: '직급', value: session?.user?.position || '-' },
+								{
+									label: '권한',
+									value: session?.user?.role === 'ADMIN' ? '관리자' : '직원',
+								},
+							].map(({ label, value }) => (
+								<div key={label} className="flex gap-4">
+									<span className="text-muted-foreground text-sm min-w-[80px]">{label}</span>
+									<span className="text-sm font-medium">{value}</span>
+								</div>
+							))}
+						</div>
+					</CardContent>
+				</Card>
 
-			{/* 비밀번호 변경 카드 */}
-			<Card>
-				<CardContent>
-					<Typography variant="h6" gutterBottom>
-						비밀번호 변경
-					</Typography>
-					<Divider sx={{ mb: 2 }} />
-					<form onSubmit={handlePasswordChange}>
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400 }}>
-							<TextField
-								label="현재 비밀번호"
-								type="password"
-								fullWidth
-								value={currentPassword}
-								onChange={(e) => setCurrentPassword(e.target.value)}
-								required
-							/>
-							<TextField
-								label="새 비밀번호 (8자 이상)"
-								type="password"
-								fullWidth
-								value={newPassword}
-								onChange={(e) => setNewPassword(e.target.value)}
-								required
-							/>
-							<TextField
-								label="새 비밀번호 확인"
-								type="password"
-								fullWidth
-								value={confirmPassword}
-								onChange={(e) => setConfirmPassword(e.target.value)}
-								required
-							/>
-							<Button
-								type="submit"
-								variant="contained"
-								disabled={passwordMutation.isPending}
-								sx={{ alignSelf: 'flex-start' }}
-							>
-								{passwordMutation.isPending ? '변경 중...' : '비밀번호 변경'}
-							</Button>
-						</Box>
-					</form>
-				</CardContent>
-			</Card>
-		</Box>
+				{/* 비밀번호 변경 */}
+				<Card>
+					<CardContent className="p-6">
+						<h2 className="text-base font-semibold mb-3">비밀번호 변경</h2>
+						<Separator className="mb-4" />
+						<form onSubmit={handlePasswordChange}>
+							<div className="flex flex-col gap-4 max-w-sm">
+								<div className="space-y-1.5">
+									<Label htmlFor="currentPassword">현재 비밀번호</Label>
+									<Input
+										id="currentPassword"
+										type="password"
+										value={currentPassword}
+										onChange={(e) => setCurrentPassword(e.target.value)}
+										required
+									/>
+								</div>
+								<div className="space-y-1.5">
+									<Label htmlFor="newPassword">새 비밀번호 (8자 이상)</Label>
+									<Input
+										id="newPassword"
+										type="password"
+										value={newPassword}
+										onChange={(e) => setNewPassword(e.target.value)}
+										required
+									/>
+								</div>
+								<div className="space-y-1.5">
+									<Label htmlFor="confirmPassword">새 비밀번호 확인</Label>
+									<Input
+										id="confirmPassword"
+										type="password"
+										value={confirmPassword}
+										onChange={(e) => setConfirmPassword(e.target.value)}
+										required
+									/>
+								</div>
+								<Button
+									type="submit"
+									className="self-start"
+									disabled={passwordMutation.isPending}
+								>
+									{passwordMutation.isPending ? '변경 중...' : '비밀번호 변경'}
+								</Button>
+							</div>
+						</form>
+					</CardContent>
+				</Card>
+			</div>
+		</PageTransition>
 	);
 }

@@ -4,20 +4,18 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
-	Box,
-	Typography,
-	Card,
-	CardContent,
 	Table,
 	TableBody,
 	TableCell,
-	TableContainer,
 	TableHead,
+	TableHeader,
 	TableRow,
-	Chip,
-	Divider,
-} from '@mui/material';
+} from '@/components/ui/table';
+import PageTransition from '@/components/common/PageTransition';
 
 interface Evaluation {
 	id: string;
@@ -60,21 +58,21 @@ export default function EmployeeEvaluationsPage() {
 	}, [error]);
 
 	if (isLoading) {
-		return <Typography>로딩 중...</Typography>;
+		return <p className="text-muted-foreground">로딩 중...</p>;
 	}
 
 	if (!evaluations || evaluations.length === 0) {
 		return (
-			<Box>
-				<Typography variant="h4" component="h1" gutterBottom>
-					내 평가
-				</Typography>
-				<Card sx={{ mt: 2 }}>
-					<CardContent>
-						<Typography>평가 결과가 없습니다.</Typography>
-					</CardContent>
-				</Card>
-			</Box>
+			<PageTransition>
+				<div>
+					<h1 className="text-2xl font-bold mb-4">내 평가</h1>
+					<Card className="mt-2">
+						<CardContent className="p-6">
+							<p className="text-sm text-muted-foreground">평가 결과가 없습니다.</p>
+						</CardContent>
+					</Card>
+				</div>
+			</PageTransition>
 		);
 	}
 
@@ -82,9 +80,7 @@ export default function EmployeeEvaluationsPage() {
 		return scores.reduce(
 			(acc, score) => {
 				const category = score.item.category;
-				if (!acc[category]) {
-					acc[category] = [];
-				}
+				if (!acc[category]) acc[category] = [];
 				acc[category].push(score);
 				return acc;
 			},
@@ -93,40 +89,32 @@ export default function EmployeeEvaluationsPage() {
 	};
 
 	return (
-		<Box>
-			<Typography variant="h4" component="h1" gutterBottom>
-				내 평가
-			</Typography>
+		<PageTransition>
+			<div>
+				<h1 className="text-2xl font-bold mb-4">내 평가</h1>
 
-			{evaluations.map((evaluation) => (
-				<Card key={evaluation.id} sx={{ mb: 3 }}>
-					<CardContent>
-						<Box
-							sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}
-						>
-							<Typography variant="h6">{evaluation.period} 평가</Typography>
-							<Chip
-								label={`총점: ${evaluation.totalScore?.toFixed(2) || 'N/A'}`}
-								color="primary"
-								size="medium"
-							/>
-						</Box>
+				{evaluations.map((evaluation) => (
+					<Card key={evaluation.id} className="mb-4">
+						<CardContent className="p-6">
+							<div className="flex justify-between items-center mb-4">
+								<h2 className="text-base font-semibold">{evaluation.period} 평가</h2>
+								<Badge className="bg-primary text-primary-foreground">
+									총점: {evaluation.totalScore?.toFixed(2) || 'N/A'}
+								</Badge>
+							</div>
 
-						{Object.entries(groupScoresByCategory(evaluation.scores)).map(
-							([category, categoryScores]) => (
-								<Box key={category} sx={{ mb: 3 }}>
-									<Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-										{category}
-									</Typography>
-									<TableContainer>
-										<Table size="small">
-											<TableHead>
+							{Object.entries(groupScoresByCategory(evaluation.scores)).map(
+								([category, categoryScores]) => (
+									<div key={category} className="mb-5">
+										<h3 className="text-sm font-bold mb-2">{category}</h3>
+										<Table>
+											<TableHeader>
 												<TableRow>
-													<TableCell>항목</TableCell>
-													<TableCell>점수</TableCell>
-													<TableCell>코멘트</TableCell>
+													<TableHead>항목</TableHead>
+													<TableHead>점수</TableHead>
+													<TableHead>코멘트</TableHead>
 												</TableRow>
-											</TableHead>
+											</TableHeader>
 											<TableBody>
 												{categoryScores.map((score, idx) => (
 													<TableRow key={idx}>
@@ -139,29 +127,25 @@ export default function EmployeeEvaluationsPage() {
 												))}
 											</TableBody>
 										</Table>
-									</TableContainer>
-								</Box>
-							),
-						)}
+									</div>
+								),
+							)}
 
-						{evaluation.comment && (
-							<>
-								<Divider sx={{ my: 2 }} />
-								<Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-									종합 코멘트
-								</Typography>
-								<Typography variant="body2" color="text.secondary">
-									{evaluation.comment}
-								</Typography>
-							</>
-						)}
+							{evaluation.comment && (
+								<>
+									<Separator className="my-3" />
+									<h3 className="text-sm font-bold mb-1">종합 코멘트</h3>
+									<p className="text-sm text-muted-foreground">{evaluation.comment}</p>
+								</>
+							)}
 
-						<Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-							평가일: {new Date(evaluation.createdAt).toLocaleDateString('ko-KR')}
-						</Typography>
-					</CardContent>
-				</Card>
-			))}
-		</Box>
+							<p className="text-xs text-muted-foreground mt-3">
+								평가일: {new Date(evaluation.createdAt).toLocaleDateString('ko-KR')}
+							</p>
+						</CardContent>
+					</Card>
+				))}
+			</div>
+		</PageTransition>
 	);
 }

@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Toaster } from 'sonner';
 import SessionProvider from '@/components/auth/SessionProvider';
 import ReactQueryProvider from '@/components/providers/ReactQueryProvider';
-import ThemeProvider from '@/components/providers/ThemeProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,14 +17,12 @@ export default function RootLayout({
 	return (
 		<html lang="ko">
 			<body>
-				<AppRouterCacheProvider>
-					<SessionProvider>
-						<ReactQueryProvider>
-							<ThemeProvider>{children}</ThemeProvider>
-							<Toaster richColors position="top-right" />
-						</ReactQueryProvider>
-					</SessionProvider>
-				</AppRouterCacheProvider>
+				<SessionProvider>
+					<ReactQueryProvider>
+						{children}
+						<Toaster richColors position="top-right" />
+					</ReactQueryProvider>
+				</SessionProvider>
 			</body>
 		</html>
 	);
