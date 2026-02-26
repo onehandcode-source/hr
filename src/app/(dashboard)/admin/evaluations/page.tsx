@@ -78,12 +78,13 @@ export default function AdminEvaluationsPage() {
 	});
 
 	const { data: items } = useQuery({
-		queryKey: ['evaluation-items', 'active'],
+		queryKey: ['evaluation-items', selectedUserId],
 		queryFn: async () => {
-			const res = await fetch('/api/evaluation-items?isActive=true');
+			const res = await fetch(`/api/evaluation-items?userId=${selectedUserId}&isActive=true`);
 			if (!res.ok) throw new Error('Failed to fetch items');
 			return res.json() as Promise<EvaluationItem[]>;
 		},
+		enabled: !!selectedUserId,
 	});
 
 	const { data: evaluations } = useQuery({
@@ -239,7 +240,13 @@ export default function AdminEvaluationsPage() {
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div className="space-y-1.5">
 									<Label>직원 선택 *</Label>
-									<Select value={selectedUserId} onValueChange={setSelectedUserId}>
+									<Select
+										value={selectedUserId}
+										onValueChange={(v) => {
+											setSelectedUserId(v);
+											setScores({});
+										}}
+									>
 										<SelectTrigger>
 											<SelectValue placeholder="직원을 선택하세요" />
 										</SelectTrigger>
@@ -263,7 +270,19 @@ export default function AdminEvaluationsPage() {
 								</div>
 							</div>
 
-							{selectedUserId && (
+							{/* 평가 항목 없음 안내 */}
+							{selectedUserId && items?.length === 0 && (
+								<div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+									이 직원의 평가 항목이 없습니다.{' '}
+									<a href="/admin/evaluations/items" className="underline font-medium">
+										평가 항목 관리
+									</a>
+									에서 먼저 항목을 추가해주세요.
+								</div>
+							)}
+
+							{/* 평가 항목 있음 */}
+							{selectedUserId && items && items.length > 0 && (
 								<>
 									{Object.entries(groupedItems || {}).map(([category, categoryItems]) => (
 										<div key={category}>

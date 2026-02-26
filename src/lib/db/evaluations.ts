@@ -1,7 +1,11 @@
 import { prisma } from '@/lib/prisma';
 
 // 평가 항목 관리
-export async function getEvaluationItems(filters?: { isActive?: boolean; category?: string }) {
+export async function getEvaluationItems(filters?: {
+	isActive?: boolean;
+	category?: string;
+	userId?: string;
+}) {
 	const where: any = {};
 
 	if (filters?.isActive !== undefined) {
@@ -10,6 +14,10 @@ export async function getEvaluationItems(filters?: { isActive?: boolean; categor
 
 	if (filters?.category) {
 		where.category = filters.category;
+	}
+
+	if (filters?.userId !== undefined) {
+		where.userId = filters.userId;
 	}
 
 	return prisma.evaluationItem.findMany({
@@ -25,6 +33,7 @@ export async function getEvaluationItem(id: string) {
 }
 
 export async function createEvaluationItem(data: {
+	userId: string;
 	title: string;
 	description?: string;
 	category: string;

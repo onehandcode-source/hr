@@ -47,9 +47,10 @@ model User {
   isActive      Boolean        @default(true)
 
   // Relations
-  leaveRequests AnnualLeave[]
-  evaluations   Evaluation[]
-  notifications Notification[]
+  leaveRequests   AnnualLeave[]
+  evaluations     Evaluation[]
+  notifications   Notification[]
+  evaluationItems EvaluationItem[]
 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -87,6 +88,8 @@ model AnnualLeave {
 // 평가 항목 테이블
 model EvaluationItem {
   id          String            @id @default(cuid())
+  userId      String?           // null = 전역(레거시), set = 직원 개인 항목
+  user        User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
   description String?
   category    String            // 예: "업무능력", "협업능력", "리더십"
@@ -101,6 +104,7 @@ model EvaluationItem {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
+  @@index([userId])
   @@index([category])
   @@index([isActive])
 }

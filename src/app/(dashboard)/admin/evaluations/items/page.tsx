@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
@@ -25,7 +25,21 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select';
 import PageTransition from '@/components/common/PageTransition';
+
+interface User {
+	id: string;
+	name: string;
+	department: string | null;
+	position: string | null;
+}
 
 interface EvaluationItem {
 	id: string;
@@ -38,48 +52,46 @@ interface EvaluationItem {
 	isActive: boolean;
 }
 
+const emptyForm = { title: '', description: '', category: '', maxScore: 5, weight: 1.0, order: 0 };
+
 export default function EvaluationItemsPage() {
 	const queryClient = useQueryClient();
+	const [selectedUserId, setSelectedUserId] = useState('');
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editingItem, setEditingItem] = useState<EvaluationItem | null>(null);
-	const [formData, setFormData] = useState({
-		title: '',
-		description: '',
-		category: '',
-		maxScore: 5,
-		weight: 1.0,
-		order: 0,
-	});
+	const [formData, setFormData] = useState(emptyForm);
 
-	const {
-		data: items,
-		isLoading,
-		error,
-	} = useQuery({
-		queryKey: ['evaluation-items'],
+	const { data: users } = useQuery<User[]>({
+		queryKey: ['users'],
 		queryFn: async () => {
-			const res = await fetch('/api/evaluation-items');
-			if (!res.ok) throw new Error('Failed to fetch items');
-			return res.json() as Promise<EvaluationItem[]>;
+			const res = await fetch('/api/users');
+			if (!res.ok) throw new Error('Failed to fetch users');
+			return res.json();
 		},
 	});
 
-	useEffect(() => {
-		if (error) toast.error('데이터를 불러오는데 실패했습니다.');
-	}, [error]);
+	const { data: items, isLoading } = useQuery<EvaluationItem[]>({
+		queryKey: ['evaluation-items', selectedUserId],
+		queryFn: async () => {
+			const res = await fetch(`/api/evaluation-items?userId=${selectedUserId}`);
+			if (!res.ok) throw new Error('Failed to fetch items');
+			return res.json();
+		},
+		enabled: !!selectedUserId,
+	});
 
 	const createMutation = useMutation({
-		mutationFn: async (data: any) => {
+		mutationFn: async (data: typeof emptyForm) => {
 			const res = await fetch('/api/evaluation-items', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(data),
+				body: JSON.stringify({ ...data, userId: selectedUserId }),
 			});
 			if (!res.ok) throw new Error('Failed to create item');
 			return res.json();
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['evaluation-items'] });
+			queryClient.invalidateQueries({ queryKey: ['evaluation-items', selectedUserId] });
 			toast.success('항목이 추가되었습니다.');
 			handleCloseDialog();
 		},
@@ -87,7 +99,7 @@ export default function EvaluationItemsPage() {
 	});
 
 	const updateMutation = useMutation({
-		mutationFn: async ({ id, data }: { id: string; data: any }) => {
+		mutationFn: async ({ id, data }: { id: string; data: Partial<typeof emptyForm & { isActive: boolean }> }) => {
 			const res = await fetch(`/api/evaluation-items/${id}`, {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
@@ -97,7 +109,7 @@ export default function EvaluationItemsPage() {
 			return res.json();
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['evaluation-items'] });
+			queryClient.invalidateQueries({ queryKey: ['evaluation-items', selectedUserId] });
 			toast.success('항목이 수정되었습니다.');
 			handleCloseDialog();
 		},
@@ -111,7 +123,7 @@ export default function EvaluationItemsPage() {
 			return res.json();
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['evaluation-items'] });
+			queryClient.invalidateQueries({ queryKey: ['evaluation-items', selectedUserId] });
 			toast.success('항목이 삭제되었습니다.');
 		},
 		onError: (err: Error) => toast.error(err.message),
@@ -130,7 +142,7 @@ export default function EvaluationItemsPage() {
 			});
 		} else {
 			setEditingItem(null);
-			setFormData({ title: '', description: '', category: '', maxScore: 5, weight: 1.0, order: 0 });
+			setFormData(emptyForm);
 		}
 		setDialogOpen(true);
 	};
@@ -141,6 +153,10 @@ export default function EvaluationItemsPage() {
 	};
 
 	const handleSubmit = () => {
+		if (!formData.title || !formData.category) {
+			toast.error('항목명과 카테고리는 필수입니다.');
+			return;
+		}
 		if (editingItem) {
 			updateMutation.mutate({ id: editingItem.id, data: formData });
 		} else {
@@ -161,86 +177,132 @@ export default function EvaluationItemsPage() {
 		{} as Record<string, EvaluationItem[]>,
 	);
 
-	if (isLoading) return <p className="text-muted-foreground">로딩 중...</p>;
+	const selectedUser = users?.find((u) => u.id === selectedUserId);
 
 	return (
 		<PageTransition>
 			<div>
-				<div className="flex justify-between items-center mb-4">
+				<div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
 					<h1 className="text-2xl font-bold">평가 항목 관리</h1>
-					<Button onClick={() => handleOpenDialog()}>
-						<Plus className="h-4 w-4 mr-1" />
-						항목 추가
-					</Button>
+					{selectedUserId && (
+						<Button onClick={() => handleOpenDialog()}>
+							<Plus className="h-4 w-4 mr-1" />
+							항목 추가
+						</Button>
+					)}
 				</div>
 
-				{Object.entries(groupedItems || {}).map(([category, categoryItems]) => (
-					<Card key={category} className="mb-3">
-						<CardContent className="p-4">
-							<h2 className="text-base font-semibold mb-3">{category}</h2>
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>항목명</TableHead>
-										<TableHead className="hidden md:table-cell">설명</TableHead>
-										<TableHead>최대점수</TableHead>
-										<TableHead className="hidden sm:table-cell">가중치</TableHead>
-										<TableHead className="hidden sm:table-cell">순서</TableHead>
-										<TableHead>상태</TableHead>
-										<TableHead>작업</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{categoryItems.map((item) => (
-										<TableRow key={item.id}>
-											<TableCell>{item.title}</TableCell>
-											<TableCell className="hidden md:table-cell">{item.description}</TableCell>
-											<TableCell>{item.maxScore}</TableCell>
-											<TableCell className="hidden sm:table-cell">{item.weight}</TableCell>
-											<TableCell className="hidden sm:table-cell">{item.order}</TableCell>
-											<TableCell>
-												<Badge
-													className={
-														item.isActive
-															? 'bg-green-100 text-green-800 hover:bg-green-100'
-															: 'bg-slate-100 text-slate-600 hover:bg-slate-100'
-													}
-												>
-													{item.isActive ? '활성' : '비활성'}
-												</Badge>
-											</TableCell>
-											<TableCell>
-												<div className="flex gap-1">
-													<Button
-														size="icon"
-														variant="ghost"
-														className="h-7 w-7"
-														onClick={() => handleOpenDialog(item)}
-													>
-														<Pencil className="h-3.5 w-3.5" />
-													</Button>
-													<Button
-														size="icon"
-														variant="ghost"
-														className="h-7 w-7 text-destructive hover:text-destructive"
-														onClick={() => handleDelete(item.id)}
-													>
-														<Trash2 className="h-3.5 w-3.5" />
-													</Button>
-												</div>
-											</TableCell>
-										</TableRow>
+				{/* 직원 선택 */}
+				<Card className="mb-4">
+					<CardContent className="p-4">
+						<div className="space-y-1.5">
+							<Label>직원 선택</Label>
+							<Select value={selectedUserId} onValueChange={setSelectedUserId}>
+								<SelectTrigger className="max-w-sm">
+									<SelectValue placeholder="직원을 선택하세요" />
+								</SelectTrigger>
+								<SelectContent>
+									{users?.map((user) => (
+										<SelectItem key={user.id} value={user.id}>
+											{user.name}
+											{user.department ? ` (${user.department}${user.position ? ' / ' + user.position : ''})` : ''}
+										</SelectItem>
 									))}
-								</TableBody>
-							</Table>
+								</SelectContent>
+							</Select>
+						</div>
+					</CardContent>
+				</Card>
+
+				{/* 항목 목록 */}
+				{!selectedUserId ? (
+					<p className="text-sm text-muted-foreground">
+						직원을 선택하면 해당 직원의 평가 항목을 관리할 수 있습니다.
+					</p>
+				) : isLoading ? (
+					<p className="text-muted-foreground">로딩 중...</p>
+				) : !items || items.length === 0 ? (
+					<Card>
+						<CardContent className="p-6 text-center">
+							<p className="text-sm text-muted-foreground">
+								{selectedUser?.name}의 평가 항목이 없습니다. 우측 상단 '항목 추가' 버튼으로 추가해주세요.
+							</p>
 						</CardContent>
 					</Card>
-				))}
+				) : (
+					Object.entries(groupedItems || {}).map(([category, categoryItems]) => (
+						<Card key={category} className="mb-3">
+							<CardContent className="p-4">
+								<h2 className="text-base font-semibold mb-3">{category}</h2>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>항목명</TableHead>
+											<TableHead className="hidden md:table-cell">설명</TableHead>
+											<TableHead>최대점수</TableHead>
+											<TableHead className="hidden sm:table-cell">가중치</TableHead>
+											<TableHead className="hidden sm:table-cell">순서</TableHead>
+											<TableHead>상태</TableHead>
+											<TableHead>작업</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{categoryItems.map((item) => (
+											<TableRow key={item.id}>
+												<TableCell>{item.title}</TableCell>
+												<TableCell className="hidden md:table-cell">{item.description}</TableCell>
+												<TableCell>{item.maxScore}</TableCell>
+												<TableCell className="hidden sm:table-cell">{item.weight}</TableCell>
+												<TableCell className="hidden sm:table-cell">{item.order}</TableCell>
+												<TableCell>
+													<Badge
+														className={
+															item.isActive
+																? 'bg-green-100 text-green-800 hover:bg-green-100'
+																: 'bg-slate-100 text-slate-600 hover:bg-slate-100'
+														}
+													>
+														{item.isActive ? '활성' : '비활성'}
+													</Badge>
+												</TableCell>
+												<TableCell>
+													<div className="flex gap-1">
+														<Button
+															size="icon"
+															variant="ghost"
+															className="h-7 w-7"
+															onClick={() => handleOpenDialog(item)}
+														>
+															<Pencil className="h-3.5 w-3.5" />
+														</Button>
+														<Button
+															size="icon"
+															variant="ghost"
+															className="h-7 w-7 text-destructive hover:text-destructive"
+															onClick={() => handleDelete(item.id)}
+														>
+															<Trash2 className="h-3.5 w-3.5" />
+														</Button>
+													</div>
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</CardContent>
+						</Card>
+					))
+				)}
 
+				{/* 추가/수정 Dialog */}
 				<Dialog open={dialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
 					<DialogContent className="sm:max-w-md">
 						<DialogHeader>
-							<DialogTitle>{editingItem ? '평가 항목 수정' : '평가 항목 추가'}</DialogTitle>
+							<DialogTitle>
+								{editingItem
+									? '평가 항목 수정'
+									: `${selectedUser?.name} · 평가 항목 추가`}
+							</DialogTitle>
 						</DialogHeader>
 						<div className="flex flex-col gap-3 py-2">
 							<div className="space-y-1.5">

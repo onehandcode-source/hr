@@ -14,10 +14,12 @@ export async function GET(request: NextRequest) {
 		const searchParams = request.nextUrl.searchParams;
 		const isActive = searchParams.get('isActive');
 		const category = searchParams.get('category');
+		const userId = searchParams.get('userId');
 
 		const filters: any = {};
 		if (isActive !== null) filters.isActive = isActive === 'true';
 		if (category) filters.category = category;
+		if (userId) filters.userId = userId;
 
 		const items = await getEvaluationItems(filters);
 
@@ -41,13 +43,14 @@ export async function POST(request: NextRequest) {
 		}
 
 		const body = await request.json();
-		const { title, description, category, maxScore, weight, order } = body;
+		const { userId, title, description, category, maxScore, weight, order } = body;
 
-		if (!title || !category) {
-			return NextResponse.json({ error: '필수 필드가 누락되었습니다' }, { status: 400 });
+		if (!userId || !title || !category) {
+			return NextResponse.json({ error: '직원, 항목명, 카테고리는 필수입니다' }, { status: 400 });
 		}
 
 		const item = await createEvaluationItem({
+			userId,
 			title,
 			description,
 			category,
