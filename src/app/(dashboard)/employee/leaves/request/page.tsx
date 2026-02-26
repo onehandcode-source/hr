@@ -16,13 +16,19 @@ import 'dayjs/locale/ko';
 import { calculateWorkdays } from '@/lib/utils/date';
 import PageTransition from '@/components/common/PageTransition';
 
-type LeaveType = 'ANNUAL' | 'HALF' | 'SICK' | 'SPECIAL';
+type LeaveType = 'ANNUAL' | 'HALF_AM' | 'HALF_PM' | 'SICK' | 'SPECIAL';
 
 const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
 	ANNUAL: '연차',
-	HALF: '반차',
+	HALF_AM: '오전반차',
+	HALF_PM: '오후반차',
 	SICK: '병가',
 	SPECIAL: '경조사',
+};
+
+const LEAVE_TYPE_HINTS: Partial<Record<LeaveType, string>> = {
+	HALF_AM: '오전 09:00 ~ 13:00',
+	HALF_PM: '오후 14:00 ~ 18:00',
 };
 
 export default function LeaveRequestPage() {
@@ -32,14 +38,15 @@ export default function LeaveRequestPage() {
 	const [startDate, setStartDate] = useState<string>('');
 	const [endDate, setEndDate] = useState<string>('');
 	const [leaveType, setLeaveType] = useState<LeaveType>('ANNUAL');
+	const isHalfDay = leaveType === 'HALF_AM' || leaveType === 'HALF_PM';
 	const [reason, setReason] = useState('');
 
 	// 반차 선택 시 종료일을 시작일과 동일하게 설정
 	useEffect(() => {
-		if (leaveType === 'HALF' && startDate) {
+		if (isHalfDay && startDate) {
 			setEndDate(startDate);
 		}
-	}, [leaveType, startDate]);
+	}, [isHalfDay, startDate]);
 
 	const { data: leaveBalance } = useQuery({
 		queryKey: ['leaveBalance', session?.user?.id],
@@ -77,8 +84,6 @@ export default function LeaveRequestPage() {
 			toast.error(err.message);
 		},
 	});
-
-	const isHalfDay = leaveType === 'HALF';
 
 	const calculateDays = () => {
 		if (!startDate) return 0;
@@ -149,6 +154,11 @@ export default function LeaveRequestPage() {
 										</div>
 									))}
 								</RadioGroup>
+								{LEAVE_TYPE_HINTS[leaveType] && (
+									<p className="text-xs text-muted-foreground mt-1">
+										{LEAVE_TYPE_HINTS[leaveType]}
+									</p>
+								)}
 							</div>
 
 							{/* 시작일 */}

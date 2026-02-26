@@ -24,6 +24,8 @@ enum LeaveStatus {
 enum LeaveType {
   ANNUAL
   HALF
+  HALF_AM
+  HALF_PM
   SICK
   SPECIAL
 }

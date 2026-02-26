@@ -85,11 +85,14 @@ interface Props {
 }
 
 export default function LeaveCalendarView({ leaves, title }: Props) {
+	const [mounted, setMounted] = useState(false);
 	const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [calendarDate, setCalendarDate] = useState(new Date());
 	const [calendarView, setCalendarView] = useState<(typeof Views)[keyof typeof Views]>(Views.MONTH);
 	const selectedRowRef = useRef<HTMLTableRowElement | null>(null);
+
+	useEffect(() => setMounted(true), []);
 
 	const isMobile = useIsMobile();
 
@@ -173,22 +176,28 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 
 			{viewMode === 'calendar' ? (
 				<div className="h-[450px] sm:h-[600px]">
-					<Calendar
-						localizer={localizer}
-						events={events}
-						startAccessor="start"
-						endAccessor="end"
-						date={calendarDate}
-						onNavigate={(date) => setCalendarDate(date)}
-						view={calendarView}
-						onView={(view) => setCalendarView(view)}
-						messages={CALENDAR_MESSAGES}
-						views={isMobile ? [Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-						eventPropGetter={eventStyleGetter}
-						onSelectEvent={handleCalendarEventSelect}
-						style={{ height: '100%' }}
-						popup
-					/>
+					{mounted ? (
+						<Calendar
+							localizer={localizer}
+							events={events}
+							startAccessor="start"
+							endAccessor="end"
+							date={calendarDate}
+							onNavigate={(date) => setCalendarDate(date)}
+							view={calendarView}
+							onView={(view) => setCalendarView(view)}
+							messages={CALENDAR_MESSAGES}
+							views={isMobile ? [Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+							eventPropGetter={eventStyleGetter}
+							onSelectEvent={handleCalendarEventSelect}
+							style={{ height: '100%' }}
+							popup
+						/>
+					) : (
+						<div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+							캘린더 로딩 중...
+						</div>
+					)}
 				</div>
 			) : (
 				<>

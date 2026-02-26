@@ -30,6 +30,8 @@ import PageTransition from '@/components/common/PageTransition';
 const LEAVE_TYPE_LABELS: Record<string, string> = {
 	ANNUAL: '연차',
 	HALF: '반차',
+	HALF_AM: '오전반차',
+	HALF_PM: '오후반차',
 	SICK: '병가',
 	SPECIAL: '경조사',
 };
