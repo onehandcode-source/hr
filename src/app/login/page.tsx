@@ -48,7 +48,7 @@ export default function LoginPage() {
 					<div className="flex justify-center mb-5">
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img
-							src="http://jhydental.com/common/images/main/logo_on.png"
+							src="/logo.png"
 							alt="로고"
 							className="h-14 object-contain"
 						/>
