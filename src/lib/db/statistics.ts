@@ -2,9 +2,9 @@ import { prisma } from '@/lib/prisma';
 
 export async function getAdminStatistics() {
 	const [totalEmployees, pendingLeaves, completedEvaluations, recentLeaves] = await Promise.all([
-		// 총 직원 수 (활성 직원만)
+		// 총 직원 수 (활성 사용자 전체)
 		prisma.user.count({
-			where: { role: 'EMPLOYEE', isActive: true },
+			where: { isActive: true },
 		}),
 
 		// 대기 중인 연차 신청
