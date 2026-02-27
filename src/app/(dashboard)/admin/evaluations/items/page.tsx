@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ListChecks, UserSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
 	Table,
 	TableBody,
@@ -33,6 +33,7 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import PageTransition from '@/components/common/PageTransition';
+import Loading from '@/components/common/Loading';
 
 interface User {
 	id: string;
@@ -182,10 +183,13 @@ export default function EvaluationItemsPage() {
 	return (
 		<PageTransition>
 			<div>
-				<div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
-					<h1 className="text-2xl font-bold">평가 항목 관리</h1>
+				<div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-6">
+					<div>
+						<h1 className="text-2xl font-bold">평가 항목 관리</h1>
+						<p className="text-sm text-muted-foreground mt-0.5">직원별 평가 항목을 설정하세요</p>
+					</div>
 					{selectedUserId && (
-						<Button onClick={() => handleOpenDialog()}>
+						<Button onClick={() => handleOpenDialog()} className="sm:mt-1">
 							<Plus className="h-4 w-4 mr-1" />
 							항목 추가
 						</Button>
@@ -194,49 +198,62 @@ export default function EvaluationItemsPage() {
 
 				{/* 직원 선택 */}
 				<Card className="mb-4">
-					<CardContent className="p-4">
-						<div className="space-y-1.5">
-							<Label>직원 선택</Label>
-							<Select value={selectedUserId} onValueChange={setSelectedUserId}>
-								<SelectTrigger className="max-w-sm">
-									<SelectValue placeholder="직원을 선택하세요" />
-								</SelectTrigger>
-								<SelectContent>
-									{users?.map((user) => (
-										<SelectItem key={user.id} value={user.id}>
-											{user.name}
-											{user.department ? ` (${user.department}${user.position ? ' / ' + user.position : ''})` : ''}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+					<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+						<div className="p-1.5 rounded-md bg-primary/10">
+							<UserSearch className="h-4 w-4 text-primary" />
 						</div>
+						<CardTitle className="text-sm font-semibold">직원 선택</CardTitle>
+					</CardHeader>
+					<CardContent className="p-5">
+						<Select value={selectedUserId} onValueChange={setSelectedUserId}>
+							<SelectTrigger className="max-w-sm">
+								<SelectValue placeholder="직원을 선택하세요" />
+							</SelectTrigger>
+							<SelectContent>
+								{users?.map((user) => (
+									<SelectItem key={user.id} value={user.id}>
+										{user.name}
+										{user.department
+											? ` (${user.department}${user.position ? ' / ' + user.position : ''})`
+											: ''}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</CardContent>
 				</Card>
 
 				{/* 항목 목록 */}
 				{!selectedUserId ? (
-					<p className="text-sm text-muted-foreground">
-						직원을 선택하면 해당 직원의 평가 항목을 관리할 수 있습니다.
-					</p>
+					<Card>
+						<CardContent className="p-8 text-center text-sm text-muted-foreground">
+							직원을 선택하면 해당 직원의 평가 항목을 관리할 수 있습니다.
+						</CardContent>
+					</Card>
 				) : isLoading ? (
-					<p className="text-muted-foreground">로딩 중...</p>
+					<Loading />
 				) : !items || items.length === 0 ? (
 					<Card>
-						<CardContent className="p-6 text-center">
-							<p className="text-sm text-muted-foreground">
-								{selectedUser?.name}의 평가 항목이 없습니다. 우측 상단 '항목 추가' 버튼으로 추가해주세요.
-							</p>
+						<CardContent className="p-8 text-center text-sm text-muted-foreground">
+							{selectedUser?.name}의 평가 항목이 없습니다. 우측 상단 &apos;항목 추가&apos; 버튼으로 추가해주세요.
 						</CardContent>
 					</Card>
 				) : (
 					Object.entries(groupedItems || {}).map(([category, categoryItems]) => (
 						<Card key={category} className="mb-3">
-							<CardContent className="p-4">
-								<h2 className="text-base font-semibold mb-3">{category}</h2>
+							<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+								<div className="p-1.5 rounded-md bg-primary/10">
+									<ListChecks className="h-4 w-4 text-primary" />
+								</div>
+								<CardTitle className="text-sm font-semibold">{category}</CardTitle>
+								<Badge variant="outline" className="ml-auto text-xs">
+									{categoryItems.length}개 항목
+								</Badge>
+							</CardHeader>
+							<CardContent className="p-0">
 								<Table>
 									<TableHeader>
-										<TableRow>
+										<TableRow className="bg-muted/40 hover:bg-muted/40">
 											<TableHead>항목명</TableHead>
 											<TableHead className="hidden md:table-cell">설명</TableHead>
 											<TableHead>최대점수</TableHead>
@@ -249,8 +266,10 @@ export default function EvaluationItemsPage() {
 									<TableBody>
 										{categoryItems.map((item) => (
 											<TableRow key={item.id}>
-												<TableCell>{item.title}</TableCell>
-												<TableCell className="hidden md:table-cell">{item.description}</TableCell>
+												<TableCell className="font-medium">{item.title}</TableCell>
+												<TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+													{item.description}
+												</TableCell>
 												<TableCell>{item.maxScore}</TableCell>
 												<TableCell className="hidden sm:table-cell">{item.weight}</TableCell>
 												<TableCell className="hidden sm:table-cell">{item.order}</TableCell>
@@ -294,14 +313,11 @@ export default function EvaluationItemsPage() {
 					))
 				)}
 
-				{/* 추가/수정 Dialog */}
 				<Dialog open={dialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
 					<DialogContent className="sm:max-w-md">
 						<DialogHeader>
 							<DialogTitle>
-								{editingItem
-									? '평가 항목 수정'
-									: `${selectedUser?.name} · 평가 항목 추가`}
+								{editingItem ? '평가 항목 수정' : `${selectedUser?.name} · 평가 항목 추가`}
 							</DialogTitle>
 						</DialogHeader>
 						<div className="flex flex-col gap-3 py-2">

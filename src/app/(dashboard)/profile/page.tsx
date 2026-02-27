@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { UserCircle, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import PageTransition from '@/components/common/PageTransition';
 
 export default function ProfilePage() {
@@ -43,49 +44,59 @@ export default function ProfilePage() {
 
 	const handlePasswordChange = (e: React.FormEvent) => {
 		e.preventDefault();
-
 		if (!currentPassword || !newPassword || !confirmPassword) {
 			toast.error('모든 필드를 입력해주세요.');
 			return;
 		}
-
 		if (newPassword.length < 8) {
 			toast.error('새 비밀번호는 8자 이상이어야 합니다.');
 			return;
 		}
-
 		if (newPassword !== confirmPassword) {
 			toast.error('새 비밀번호가 일치하지 않습니다.');
 			return;
 		}
-
 		passwordMutation.mutate({ currentPassword, newPassword });
 	};
+
+	const infoRows = [
+		{ label: '이름', value: session?.user?.name },
+		{ label: '이메일', value: session?.user?.email },
+		{ label: '부서', value: session?.user?.department || '-' },
+		{ label: '직급', value: session?.user?.position || '-' },
+	];
 
 	return (
 		<PageTransition>
 			<div>
-				<h1 className="text-2xl font-bold mb-6">프로필</h1>
+				<div className="mb-6">
+					<h1 className="text-2xl font-bold">프로필</h1>
+					<p className="text-sm text-muted-foreground mt-0.5">내 계정 정보를 확인하고 관리하세요</p>
+				</div>
 
 				{/* 기본 정보 */}
 				<Card className="mb-4">
-					<CardContent className="p-6">
-						<h2 className="text-base font-semibold mb-3">기본 정보</h2>
-						<Separator className="mb-4" />
-						<div className="flex flex-col gap-3">
-							{[
-								{ label: '이름', value: session?.user?.name },
-								{ label: '이메일', value: session?.user?.email },
-								{ label: '부서', value: session?.user?.department || '-' },
-								{ label: '직급', value: session?.user?.position || '-' },
-								{
-									label: '권한',
-									value: session?.user?.role === 'ADMIN' ? '관리자' : '직원',
-								},
-							].map(({ label, value }) => (
-								<div key={label} className="flex gap-4">
-									<span className="text-muted-foreground text-sm min-w-[80px]">{label}</span>
-									<span className="text-sm font-medium">{value}</span>
+					<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+						<div className="p-1.5 rounded-md bg-primary/10">
+							<UserCircle className="h-4 w-4 text-primary" />
+						</div>
+						<CardTitle className="text-sm font-semibold">기본 정보</CardTitle>
+						<Badge
+							className={`ml-auto ${
+								session?.user?.role === 'ADMIN'
+									? 'bg-violet-100 text-violet-800 hover:bg-violet-100'
+									: 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+							}`}
+						>
+							{session?.user?.role === 'ADMIN' ? '관리자' : '직원'}
+						</Badge>
+					</CardHeader>
+					<CardContent className="p-5">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							{infoRows.map(({ label, value }) => (
+								<div key={label} className="space-y-1">
+									<p className="text-xs text-muted-foreground">{label}</p>
+									<p className="text-sm font-medium">{value}</p>
 								</div>
 							))}
 						</div>
@@ -94,9 +105,13 @@ export default function ProfilePage() {
 
 				{/* 비밀번호 변경 */}
 				<Card>
-					<CardContent className="p-6">
-						<h2 className="text-base font-semibold mb-3">비밀번호 변경</h2>
-						<Separator className="mb-4" />
+					<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+						<div className="p-1.5 rounded-md bg-amber-50">
+							<KeyRound className="h-4 w-4 text-amber-600" />
+						</div>
+						<CardTitle className="text-sm font-semibold">비밀번호 변경</CardTitle>
+					</CardHeader>
+					<CardContent className="p-5">
 						<form onSubmit={handlePasswordChange}>
 							<div className="flex flex-col gap-4 max-w-sm">
 								<div className="space-y-1.5">

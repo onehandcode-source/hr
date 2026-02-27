@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import { CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import dayjs from 'dayjs';
@@ -41,7 +42,6 @@ export default function LeaveRequestPage() {
 	const isHalfDay = leaveType === 'HALF_AM' || leaveType === 'HALF_PM';
 	const [reason, setReason] = useState('');
 
-	// 반차 선택 시 종료일을 시작일과 동일하게 설정
 	useEffect(() => {
 		if (isHalfDay && startDate) {
 			setEndDate(startDate);
@@ -92,31 +92,33 @@ export default function LeaveRequestPage() {
 		return calculateWorkdays(dayjs(startDate).toDate(), dayjs(endDate).toDate());
 	};
 
+	const calculatedDays = calculateDays();
+	const effectiveRemaining = leaveBalance?.effectiveRemaining ?? leaveBalance?.remainingLeaves ?? Infinity;
+	const isExceeding = !!leaveBalance && calculatedDays > 0 && calculatedDays > effectiveRemaining;
+
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-
 		if (!startDate || (!isHalfDay && !endDate)) {
 			toast.error('날짜를 선택해주세요.');
 			return;
 		}
-
 		if (!isHalfDay && dayjs(startDate).isAfter(dayjs(endDate))) {
 			toast.error('종료일은 시작일 이후여야 합니다.');
 			return;
 		}
-
 		if (!reason.trim()) {
 			toast.error('사유를 입력해주세요.');
 			return;
 		}
-
-		const days = calculateDays();
+		if (isExceeding) {
+			toast.error(`잔여 연차가 부족합니다. (신청: ${calculatedDays}일, 신청 가능: ${effectiveRemaining}일)`);
+			return;
+		}
 		const finalEndDate = isHalfDay ? startDate : endDate;
-
 		createMutation.mutate({
 			startDate: dayjs(startDate).toISOString(),
 			endDate: dayjs(finalEndDate).toISOString(),
-			days,
+			days: calculatedDays,
 			reason,
 			leaveType,
 		});
@@ -125,19 +127,41 @@ export default function LeaveRequestPage() {
 	return (
 		<PageTransition>
 			<div>
-				<h1 className="text-2xl font-bold mb-4">연차 신청</h1>
+				<div className="mb-6">
+					<h1 className="text-2xl font-bold">연차 신청</h1>
+					<p className="text-sm text-muted-foreground mt-0.5">연차를 신청하고 승인을 받으세요</p>
+				</div>
 
+				{/* 잔여 연차 현황 */}
 				{leaveBalance && (
-					<Alert className="mb-4">
-						<AlertDescription>
-							총 연차: {leaveBalance.totalLeaves}일 | 사용: {leaveBalance.usedLeaves}일 | 남은 연차:{' '}
-							{leaveBalance.remainingLeaves}일
-						</AlertDescription>
-					</Alert>
+					<div className="grid grid-cols-3 gap-3 mb-4">
+						{[
+							{ label: '총 연차', value: leaveBalance.totalLeaves, unit: '일', color: 'bg-indigo-500', iconBg: 'bg-indigo-50', textColor: 'text-indigo-600' },
+							{ label: '사용 연차', value: leaveBalance.usedLeaves, unit: '일', color: 'bg-orange-500', iconBg: 'bg-orange-50', textColor: 'text-orange-600' },
+							{ label: '잔여 연차', value: leaveBalance.remainingLeaves, unit: '일', color: 'bg-emerald-500', iconBg: 'bg-emerald-50', textColor: 'text-emerald-600' },
+						].map((item) => (
+							<Card key={item.label} className="overflow-hidden">
+								<div className={`h-1 ${item.color}`} />
+								<CardContent className="p-3 sm:p-4 text-center">
+									<p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+									<p className={`text-2xl font-bold ${item.textColor}`}>
+										{item.value}
+										<span className="text-sm font-normal ml-0.5">{item.unit}</span>
+									</p>
+								</CardContent>
+							</Card>
+						))}
+					</div>
 				)}
 
 				<Card>
-					<CardContent className="p-6">
+					<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+						<div className="p-1.5 rounded-md bg-primary/10">
+							<CalendarPlus className="h-4 w-4 text-primary" />
+						</div>
+						<CardTitle className="text-sm font-semibold">신청서 작성</CardTitle>
+					</CardHeader>
+					<CardContent className="p-5">
 						<form onSubmit={handleSubmit} className="flex flex-col gap-5">
 							{/* 연차 유형 */}
 							<div className="space-y-2">
@@ -173,7 +197,7 @@ export default function LeaveRequestPage() {
 								/>
 							</div>
 
-							{/* 종료일 (반차가 아닌 경우) */}
+							{/* 종료일 */}
 							{!isHalfDay && (
 								<div className="space-y-1.5">
 									<Label htmlFor="endDate">종료일</Label>
@@ -190,8 +214,15 @@ export default function LeaveRequestPage() {
 
 							{/* 신청 일수 미리보기 */}
 							{startDate && (isHalfDay || endDate) && (
-								<Alert>
-									<AlertDescription>신청 일수: {calculateDays()}일</AlertDescription>
+								<Alert className={isExceeding ? 'border-destructive bg-destructive/5' : ''}>
+									<AlertDescription className={isExceeding ? 'text-destructive' : ''}>
+										신청 일수: <strong>{calculatedDays}일</strong>
+										{isExceeding && (
+											<span className="ml-2 font-medium">
+												— 잔여 연차 초과 (신청 가능: {effectiveRemaining}일)
+											</span>
+										)}
+									</AlertDescription>
 								</Alert>
 							)}
 
@@ -208,7 +239,7 @@ export default function LeaveRequestPage() {
 								/>
 							</div>
 
-							<Button type="submit" size="lg" disabled={createMutation.isPending}>
+							<Button type="submit" size="lg" disabled={createMutation.isPending || isExceeding}>
 								{createMutation.isPending ? '신청 중...' : '신청하기'}
 							</Button>
 						</form>

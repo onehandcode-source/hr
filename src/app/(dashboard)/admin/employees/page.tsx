@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import {
 	Table,
@@ -28,6 +28,7 @@ import {
 import { useIsMobile } from '@/hooks/useIsMobile';
 import dayjs from 'dayjs';
 import PageTransition from '@/components/common/PageTransition';
+import Loading from '@/components/common/Loading';
 
 interface Employee {
 	id: string;
@@ -153,14 +154,17 @@ export default function EmployeesPage() {
 		updateMutation.mutate({ id: emp.id, data: { isActive: !emp.isActive } });
 	};
 
-	if (isLoading) return <p className="text-muted-foreground">로딩 중...</p>;
+	if (isLoading) return <Loading />;
 
 	return (
 		<PageTransition>
 			<div>
-				<div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
-					<h1 className="text-2xl font-bold">직원 관리</h1>
-					<div className="flex items-center gap-3">
+				<div className="flex flex-col sm:flex-row justify-between sm:items-start gap-3 mb-6">
+					<div>
+						<h1 className="text-2xl font-bold">직원 관리</h1>
+						<p className="text-sm text-muted-foreground mt-0.5">직원 정보를 조회하고 관리하세요</p>
+					</div>
+					<div className="flex items-center gap-3 sm:mt-1">
 						<div className="flex items-center gap-2">
 							<Switch
 								id="showInactive"
@@ -168,7 +172,7 @@ export default function EmployeesPage() {
 								onCheckedChange={setShowInactive}
 							/>
 							<Label htmlFor="showInactive" className="text-sm">
-								비활성 직원 포함
+								비활성 포함
 							</Label>
 						</div>
 						<Button onClick={() => setAddOpen(true)}>
@@ -178,14 +182,19 @@ export default function EmployeesPage() {
 					</div>
 				</div>
 
-				{/* 모바일: 카드 */}
 				{isMobile ? (
+					/* 모바일: 카드 */
 					<div className="flex flex-col gap-3">
 						{!employees || employees.length === 0 ? (
-							<p className="text-center text-muted-foreground py-6">직원이 없습니다.</p>
+							<Card>
+								<CardContent className="p-8 text-center text-sm text-muted-foreground">
+									직원이 없습니다.
+								</CardContent>
+							</Card>
 						) : (
 							employees.map((emp) => (
-								<Card key={emp.id} className={emp.isActive ? '' : 'opacity-50'}>
+								<Card key={emp.id} className={`overflow-hidden ${emp.isActive ? '' : 'opacity-60'}`}>
+									<div className={`h-1 ${emp.isActive ? 'bg-primary' : 'bg-slate-300'}`} />
 									<CardContent className="p-4">
 										<div className="flex justify-between items-start">
 											<div>
@@ -193,7 +202,7 @@ export default function EmployeesPage() {
 												<p className="text-sm text-muted-foreground">
 													{emp.department || '-'} · {emp.position || '-'}
 												</p>
-												<p className="text-xs text-muted-foreground mt-0.5">
+												<p className="text-xs text-muted-foreground mt-1">
 													연차 {emp.totalLeaves}일 · 사용 {emp.usedLeaves}일 · 잔여{' '}
 													{emp.totalLeaves - emp.usedLeaves}일
 												</p>
@@ -232,10 +241,21 @@ export default function EmployeesPage() {
 				) : (
 					/* 데스크탑: 테이블 */
 					<Card>
-						<CardContent className="p-4">
+						<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+							<div className="p-1.5 rounded-md bg-primary/10">
+								<Users className="h-4 w-4 text-primary" />
+							</div>
+							<CardTitle className="text-sm font-semibold">직원 목록</CardTitle>
+							{employees && (
+								<Badge variant="outline" className="ml-auto text-xs">
+									{employees.length}명
+								</Badge>
+							)}
+						</CardHeader>
+						<CardContent className="p-0">
 							<Table>
 								<TableHeader>
-									<TableRow>
+									<TableRow className="bg-muted/40 hover:bg-muted/40">
 										<TableHead>이름</TableHead>
 										<TableHead>이메일</TableHead>
 										<TableHead>부서</TableHead>
@@ -249,20 +269,24 @@ export default function EmployeesPage() {
 								<TableBody>
 									{!employees || employees.length === 0 ? (
 										<TableRow>
-											<TableCell colSpan={8} className="text-center text-muted-foreground">
+											<TableCell colSpan={8} className="text-center text-muted-foreground py-8">
 												직원이 없습니다.
 											</TableCell>
 										</TableRow>
 									) : (
 										employees.map((emp) => (
-											<TableRow key={emp.id} className={emp.isActive ? '' : 'opacity-50'}>
-												<TableCell>{emp.name}</TableCell>
-												<TableCell>{emp.email}</TableCell>
+											<TableRow key={emp.id} className={emp.isActive ? '' : 'opacity-60'}>
+												<TableCell className="font-medium">{emp.name}</TableCell>
+												<TableCell className="text-muted-foreground">{emp.email}</TableCell>
 												<TableCell>{emp.department || '-'}</TableCell>
 												<TableCell>{emp.position || '-'}</TableCell>
 												<TableCell>{dayjs(emp.hireDate).format('YYYY-MM-DD')}</TableCell>
 												<TableCell>
-													{emp.totalLeaves} / {emp.usedLeaves} / {emp.totalLeaves - emp.usedLeaves}
+													<span className="font-medium">{emp.totalLeaves}</span>
+													<span className="text-muted-foreground"> / {emp.usedLeaves} / </span>
+													<span className="font-medium text-emerald-600">
+														{emp.totalLeaves - emp.usedLeaves}
+													</span>
 												</TableCell>
 												<TableCell>
 													<Badge
@@ -309,30 +333,10 @@ export default function EmployeesPage() {
 						<div className="flex flex-col gap-3 py-2">
 							{[
 								{ id: 'name', label: '이름 *', type: 'text', key: 'name' as keyof EmployeeForm },
-								{
-									id: 'email',
-									label: '이메일 *',
-									type: 'email',
-									key: 'email' as keyof EmployeeForm,
-								},
-								{
-									id: 'password',
-									label: '비밀번호 * (8자 이상)',
-									type: 'password',
-									key: 'password' as keyof EmployeeForm,
-								},
-								{
-									id: 'department',
-									label: '부서',
-									type: 'text',
-									key: 'department' as keyof EmployeeForm,
-								},
-								{
-									id: 'position',
-									label: '직급',
-									type: 'text',
-									key: 'position' as keyof EmployeeForm,
-								},
+								{ id: 'email', label: '이메일 *', type: 'email', key: 'email' as keyof EmployeeForm },
+								{ id: 'password', label: '비밀번호 * (8자 이상)', type: 'password', key: 'password' as keyof EmployeeForm },
+								{ id: 'department', label: '부서', type: 'text', key: 'department' as keyof EmployeeForm },
+								{ id: 'position', label: '직급', type: 'text', key: 'position' as keyof EmployeeForm },
 							].map(({ id, label, type, key }) => (
 								<div key={id} className="space-y-1.5">
 									<Label htmlFor={id}>{label}</Label>

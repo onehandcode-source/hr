@@ -4,14 +4,13 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Eye } from 'lucide-react';
+import { Eye, ClipboardList, FilePen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
 	Table,
 	TableBody,
@@ -122,23 +121,19 @@ export default function AdminEvaluationsPage() {
 
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
-
 		if (!selectedUserId || !period) {
 			toast.error('직원과 평가 기간을 선택해주세요.');
 			return;
 		}
-
 		if (Object.keys(scores).length === 0) {
 			toast.error('최소 하나의 항목에 점수를 입력해주세요.');
 			return;
 		}
-
 		const scoreArray = Object.entries(scores).map(([itemId, data]) => ({
 			itemId,
 			score: data.score,
 			comment: data.comment,
 		}));
-
 		createMutation.mutate({ userId: selectedUserId, period, scores: scoreArray, comment });
 	};
 
@@ -162,16 +157,28 @@ export default function AdminEvaluationsPage() {
 	return (
 		<PageTransition>
 			<div>
-				<h1 className="text-2xl font-bold mb-4">직원 평가</h1>
+				<div className="mb-6">
+					<h1 className="text-2xl font-bold">직원 평가</h1>
+					<p className="text-sm text-muted-foreground mt-0.5">직원 성과를 평가하고 기록하세요</p>
+				</div>
 
 				{/* 평가 목록 */}
 				<Card className="mb-6">
-					<CardContent className="p-4">
-						<h2 className="text-base font-semibold mb-3">평가 목록</h2>
-						<Separator className="mb-3" />
+					<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+						<div className="p-1.5 rounded-md bg-primary/10">
+							<ClipboardList className="h-4 w-4 text-primary" />
+						</div>
+						<CardTitle className="text-sm font-semibold">평가 목록</CardTitle>
+						{evaluations && evaluations.length > 0 && (
+							<Badge variant="outline" className="ml-auto text-xs">
+								{evaluations.length}건
+							</Badge>
+						)}
+					</CardHeader>
+					<CardContent className="p-0">
 						<Table>
 							<TableHeader>
-								<TableRow>
+								<TableRow className="bg-muted/40 hover:bg-muted/40">
 									<TableHead>직원명</TableHead>
 									<TableHead className="hidden sm:table-cell">부서 / 직급</TableHead>
 									<TableHead>평가 기간</TableHead>
@@ -184,15 +191,15 @@ export default function AdminEvaluationsPage() {
 							<TableBody>
 								{!evaluations || evaluations.length === 0 ? (
 									<TableRow>
-										<TableCell colSpan={7} className="text-center text-muted-foreground">
+										<TableCell colSpan={7} className="text-center text-muted-foreground py-8">
 											작성된 평가가 없습니다.
 										</TableCell>
 									</TableRow>
 								) : (
 									evaluations.map((ev) => (
 										<TableRow key={ev.id}>
-											<TableCell>{ev.user.name}</TableCell>
-											<TableCell className="hidden sm:table-cell">
+											<TableCell className="font-medium">{ev.user.name}</TableCell>
+											<TableCell className="hidden sm:table-cell text-muted-foreground">
 												{ev.user.department} / {ev.user.position}
 											</TableCell>
 											<TableCell>{ev.period}</TableCell>
@@ -210,7 +217,7 @@ export default function AdminEvaluationsPage() {
 													{ev.status === 'COMPLETED' ? '완료' : '임시저장'}
 												</Badge>
 											</TableCell>
-											<TableCell className="hidden sm:table-cell">
+											<TableCell className="hidden sm:table-cell text-muted-foreground">
 												{dayjs(ev.createdAt).format('YYYY-MM-DD')}
 											</TableCell>
 											<TableCell className="text-center">
@@ -233,9 +240,13 @@ export default function AdminEvaluationsPage() {
 
 				{/* 새 평가 작성 */}
 				<Card>
-					<CardContent className="p-4">
-						<h2 className="text-base font-semibold mb-3">새 평가 작성</h2>
-						<Separator className="mb-4" />
+					<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+						<div className="p-1.5 rounded-md bg-violet-50">
+							<FilePen className="h-4 w-4 text-violet-600" />
+						</div>
+						<CardTitle className="text-sm font-semibold">새 평가 작성</CardTitle>
+					</CardHeader>
+					<CardContent className="p-5">
 						<form onSubmit={handleSubmit} className="flex flex-col gap-5">
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div className="space-y-1.5">
@@ -270,7 +281,6 @@ export default function AdminEvaluationsPage() {
 								</div>
 							</div>
 
-							{/* 평가 항목 없음 안내 */}
 							{selectedUserId && items?.length === 0 && (
 								<div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
 									이 직원의 평가 항목이 없습니다.{' '}
@@ -281,56 +291,59 @@ export default function AdminEvaluationsPage() {
 								</div>
 							)}
 
-							{/* 평가 항목 있음 */}
 							{selectedUserId && items && items.length > 0 && (
 								<>
 									{Object.entries(groupedItems || {}).map(([category, categoryItems]) => (
 										<div key={category}>
-											<h3 className="text-base font-semibold mb-2">{category}</h3>
-											<Table>
-												<TableHeader>
-													<TableRow>
-														<TableHead>항목</TableHead>
-														<TableHead className="hidden md:table-cell">설명</TableHead>
-														<TableHead className="w-40">
-															점수 (최대 {categoryItems[0]?.maxScore})
-														</TableHead>
-														<TableHead>코멘트</TableHead>
-													</TableRow>
-												</TableHeader>
-												<TableBody>
-													{categoryItems.map((item) => (
-														<TableRow key={item.id}>
-															<TableCell>{item.title}</TableCell>
-															<TableCell className="hidden md:table-cell">
-																{item.description}
-															</TableCell>
-															<TableCell>
-																<Input
-																	type="number"
-																	className="w-24"
-																	min={0}
-																	max={item.maxScore}
-																	step={0.5}
-																	value={scores[item.id]?.score || ''}
-																	onChange={(e) =>
-																		handleScoreChange(item.id, parseFloat(e.target.value))
-																	}
-																/>
-															</TableCell>
-															<TableCell>
-																<Input
-																	placeholder="선택사항"
-																	value={scores[item.id]?.comment || ''}
-																	onChange={(e) =>
-																		handleScoreCommentChange(item.id, e.target.value)
-																	}
-																/>
-															</TableCell>
+											<p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+												{category}
+											</p>
+											<div className="rounded-md border">
+												<Table>
+													<TableHeader>
+														<TableRow className="bg-muted/40 hover:bg-muted/40">
+															<TableHead>항목</TableHead>
+															<TableHead className="hidden md:table-cell">설명</TableHead>
+															<TableHead className="w-40">
+																점수 (최대 {categoryItems[0]?.maxScore})
+															</TableHead>
+															<TableHead>코멘트</TableHead>
 														</TableRow>
-													))}
-												</TableBody>
-											</Table>
+													</TableHeader>
+													<TableBody>
+														{categoryItems.map((item) => (
+															<TableRow key={item.id}>
+																<TableCell className="font-medium">{item.title}</TableCell>
+																<TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+																	{item.description}
+																</TableCell>
+																<TableCell>
+																	<Input
+																		type="number"
+																		className="w-24"
+																		min={0}
+																		max={item.maxScore}
+																		step={0.5}
+																		value={scores[item.id]?.score || ''}
+																		onChange={(e) =>
+																			handleScoreChange(item.id, parseFloat(e.target.value))
+																		}
+																	/>
+																</TableCell>
+																<TableCell>
+																	<Input
+																		placeholder="선택사항"
+																		value={scores[item.id]?.comment || ''}
+																		onChange={(e) =>
+																			handleScoreCommentChange(item.id, e.target.value)
+																		}
+																	/>
+																</TableCell>
+															</TableRow>
+														))}
+													</TableBody>
+												</Table>
+											</div>
 										</div>
 									))}
 

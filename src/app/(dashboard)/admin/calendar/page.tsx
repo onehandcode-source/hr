@@ -3,9 +3,11 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Card, CardContent } from '@/components/ui/card';
+import { CalendarRange } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import LeaveCalendarView from '@/components/common/LeaveCalendarView';
 import PageTransition from '@/components/common/PageTransition';
+import Loading from '@/components/common/Loading';
 
 interface LeaveEvent {
 	id: string;
@@ -37,16 +39,25 @@ export default function AdminCalendarPage() {
 	}, [error]);
 
 	if (isLoading) {
-		return <p className="text-muted-foreground">로딩 중...</p>;
+		return <Loading />;
 	}
 
 	return (
 		<PageTransition>
 			<div>
-				<h1 className="text-2xl font-bold mb-4">전체 직원 일정</h1>
-				<Card className="mt-2">
+				<div className="mb-6">
+					<h1 className="text-2xl font-bold">전체 직원 일정</h1>
+					<p className="text-sm text-muted-foreground mt-0.5">승인된 연차 일정을 캘린더로 확인하세요</p>
+				</div>
+				<Card>
+					<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+						<div className="p-1.5 rounded-md bg-primary/10">
+							<CalendarRange className="h-4 w-4 text-primary" />
+						</div>
+						<CardTitle className="text-sm font-semibold">연차 캘린더</CardTitle>
+					</CardHeader>
 					<CardContent className="p-4">
-						<LeaveCalendarView leaves={leaves ?? []} title="모든 직원의 승인된 연차 현황" />
+						<LeaveCalendarView leaves={leaves ?? []} />
 					</CardContent>
 				</Card>
 			</div>

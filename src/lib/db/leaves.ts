@@ -160,9 +160,18 @@ export async function getUserLeaveBalance(userId: string) {
 		return null;
 	}
 
+	const pendingResult = await prisma.annualLeave.aggregate({
+		where: { userId, status: 'PENDING' },
+		_sum: { days: true },
+	});
+	const pendingDays = Number(pendingResult._sum.days ?? 0);
+	const remainingLeaves = user.totalLeaves - user.usedLeaves;
+
 	return {
 		totalLeaves: user.totalLeaves,
 		usedLeaves: user.usedLeaves,
-		remainingLeaves: user.totalLeaves - user.usedLeaves,
+		remainingLeaves,
+		pendingDays,
+		effectiveRemaining: remainingLeaves - pendingDays,
 	};
 }

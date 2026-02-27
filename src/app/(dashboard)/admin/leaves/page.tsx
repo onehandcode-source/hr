@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { ClipboardList, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
 	Table,
 	TableBody,
@@ -26,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { formatDateKorean } from '@/lib/utils/date';
 import PageTransition from '@/components/common/PageTransition';
+import Loading from '@/components/common/Loading';
 
 const LEAVE_TYPE_LABELS: Record<string, string> = {
 	ANNUAL: '연차',
@@ -129,24 +131,30 @@ export default function AdminLeavesPage() {
 	};
 
 	if (isLoading) {
-		return <p className="text-muted-foreground">로딩 중...</p>;
+		return <Loading />;
 	}
 
 	return (
 		<PageTransition>
 			<div>
-				<h1 className="text-2xl font-bold mb-4">연차 관리</h1>
+				<div className="mb-6">
+					<h1 className="text-2xl font-bold">연차 관리</h1>
+					<p className="text-sm text-muted-foreground mt-0.5">대기 중인 연차 신청을 검토하세요</p>
+				</div>
 
-				{/* 모바일: 카드 레이아웃 */}
 				{isMobile ? (
-					<div className="flex flex-col gap-3 mt-2">
+					/* 모바일: 카드 */
+					<div className="flex flex-col gap-3">
 						{!leaves || leaves.length === 0 ? (
-							<p className="text-center text-muted-foreground py-6">
-								대기 중인 연차 신청이 없습니다.
-							</p>
+							<Card>
+								<CardContent className="p-8 text-center text-sm text-muted-foreground">
+									대기 중인 연차 신청이 없습니다.
+								</CardContent>
+							</Card>
 						) : (
 							leaves.map((leave) => (
-								<Card key={leave.id}>
+								<Card key={leave.id} className="overflow-hidden">
+									<div className="h-1 bg-amber-400" />
 									<CardContent className="p-4">
 										<div className="flex justify-between items-start mb-2">
 											<div>
@@ -159,17 +167,19 @@ export default function AdminLeavesPage() {
 												{statusText[leave.status] ?? leave.status}
 											</Badge>
 										</div>
-										<div className="flex gap-2 flex-wrap items-center mb-1">
+										<div className="flex gap-2 flex-wrap items-center mb-2">
 											<Badge variant="outline">
 												{LEAVE_TYPE_LABELS[leave.leaveType] || leave.leaveType}
 											</Badge>
-											<span className="text-sm">
+											<span className="text-sm text-muted-foreground">
 												{formatDateKorean(new Date(leave.startDate))} ~{' '}
 												{formatDateKorean(new Date(leave.endDate))} ({leave.days}일)
 											</span>
 										</div>
 										{leave.reason && (
-											<p className="text-xs text-muted-foreground mb-2">사유: {leave.reason}</p>
+											<p className="text-xs text-muted-foreground mb-3 border-l-2 border-muted pl-2">
+												{leave.reason}
+											</p>
 										)}
 										{leave.status === 'PENDING' && (
 											<div className="flex gap-2 mt-2">
@@ -178,6 +188,7 @@ export default function AdminLeavesPage() {
 													className="flex-1 bg-green-600 hover:bg-green-700"
 													onClick={() => handleOpenDialog(leave, 'APPROVED')}
 												>
+													<CheckCircle2 className="h-3.5 w-3.5 mr-1" />
 													승인
 												</Button>
 												<Button
@@ -186,6 +197,7 @@ export default function AdminLeavesPage() {
 													className="flex-1"
 													onClick={() => handleOpenDialog(leave, 'REJECTED')}
 												>
+													<XCircle className="h-3.5 w-3.5 mr-1" />
 													거부
 												</Button>
 											</div>
@@ -197,13 +209,24 @@ export default function AdminLeavesPage() {
 					</div>
 				) : (
 					/* 데스크탑: 테이블 */
-					<Card className="mt-2">
-						<CardContent className="p-4">
+					<Card>
+						<CardHeader className="flex flex-row items-center gap-2 px-5 py-4 border-b space-y-0">
+							<div className="p-1.5 rounded-md bg-amber-50">
+								<ClipboardList className="h-4 w-4 text-amber-600" />
+							</div>
+							<CardTitle className="text-sm font-semibold">대기 중인 연차 신청</CardTitle>
+							{leaves && leaves.length > 0 && (
+								<Badge className="ml-auto bg-amber-100 text-amber-800 hover:bg-amber-100">
+									{leaves.length}건
+								</Badge>
+							)}
+						</CardHeader>
+						<CardContent className="p-0">
 							<Table>
 								<TableHeader>
-									<TableRow>
+									<TableRow className="bg-muted/40 hover:bg-muted/40">
 										<TableHead>직원명</TableHead>
-										<TableHead>부서/직급</TableHead>
+										<TableHead>부서 / 직급</TableHead>
 										<TableHead>종류</TableHead>
 										<TableHead>시작일</TableHead>
 										<TableHead>종료일</TableHead>
@@ -216,22 +239,28 @@ export default function AdminLeavesPage() {
 								<TableBody>
 									{!leaves || leaves.length === 0 ? (
 										<TableRow>
-											<TableCell colSpan={9} className="text-center text-muted-foreground">
+											<TableCell colSpan={9} className="text-center text-muted-foreground py-8">
 												대기 중인 연차 신청이 없습니다.
 											</TableCell>
 										</TableRow>
 									) : (
 										leaves.map((leave) => (
 											<TableRow key={leave.id}>
-												<TableCell>{leave.user.name}</TableCell>
-												<TableCell>
+												<TableCell className="font-medium">{leave.user.name}</TableCell>
+												<TableCell className="text-muted-foreground">
 													{leave.user.department} / {leave.user.position}
 												</TableCell>
-												<TableCell>{LEAVE_TYPE_LABELS[leave.leaveType] || leave.leaveType}</TableCell>
+												<TableCell>
+													<Badge variant="outline">
+														{LEAVE_TYPE_LABELS[leave.leaveType] || leave.leaveType}
+													</Badge>
+												</TableCell>
 												<TableCell>{formatDateKorean(new Date(leave.startDate))}</TableCell>
 												<TableCell>{formatDateKorean(new Date(leave.endDate))}</TableCell>
 												<TableCell>{leave.days}일</TableCell>
-												<TableCell>{leave.reason}</TableCell>
+												<TableCell className="max-w-[150px] truncate text-muted-foreground">
+													{leave.reason}
+												</TableCell>
 												<TableCell>
 													<Badge className={statusClass[leave.status] ?? ''}>
 														{statusText[leave.status] ?? leave.status}

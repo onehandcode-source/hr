@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getLeaveRequests, createLeaveRequest } from '@/lib/db/leaves';
+import { getLeaveRequests, createLeaveRequest, getUserLeaveBalance } from '@/lib/db/leaves';
 import { LeaveStatus, LeaveType } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
@@ -53,11 +53,24 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: '필수 필드가 누락되었습니다' }, { status: 400 });
 		}
 
+		const parsedDays = parseFloat(days);
+
+		// 잔여 연차 초과 방지 (대기 중인 신청 포함)
+		const balance = await getUserLeaveBalance(session.user.id);
+		if (balance && parsedDays > balance.effectiveRemaining) {
+			return NextResponse.json(
+				{
+					error: `잔여 연차가 부족합니다. (신청: ${parsedDays}일, 신청 가능: ${balance.effectiveRemaining}일)`,
+				},
+				{ status: 400 },
+			);
+		}
+
 		const leave = await createLeaveRequest({
 			userId: session.user.id,
 			startDate: new Date(startDate),
 			endDate: new Date(endDate),
-			days: parseFloat(days),
+			days: parsedDays,
 			reason,
 			leaveType: (leaveType as LeaveType) ?? 'ANNUAL',
 		});

@@ -5,7 +5,7 @@ import { Calendar, dayjsLocalizer, Views } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
-import { CalendarDays, List } from 'lucide-react';
+import { CalendarDays, List, Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
@@ -205,8 +205,8 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 							popup
 						/>
 					) : (
-						<div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-							캘린더 로딩 중...
+						<div className="h-full flex items-center justify-center">
+							<Loader2 className="h-8 w-8 animate-spin text-primary" />
 						</div>
 					)}
 				</div>
