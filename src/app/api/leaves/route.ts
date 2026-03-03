@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getLeaveRequests, createLeaveRequest, getUserLeaveBalance } from '@/lib/db/leaves';
+import { getLeaveRequests, createLeaveRequest, getUserLeaveBalance, checkLeaveOverlap } from '@/lib/db/leaves';
 import { LeaveStatus, LeaveType } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
@@ -54,6 +54,24 @@ export async function POST(request: NextRequest) {
 		}
 
 		const parsedDays = parseFloat(days);
+
+		// 날짜 중복 확인 (PENDING + APPROVED)
+		const overlap = await checkLeaveOverlap(
+			session.user.id,
+			new Date(startDate),
+			new Date(endDate),
+		);
+		if (overlap.overlapping) {
+			const fmt = (d: Date) =>
+				new Date(d).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+			const conflictDesc = overlap.conflicts
+				.map((c) => `${fmt(c.startDate)}~${fmt(c.endDate)}`)
+				.join(', ');
+			return NextResponse.json(
+				{ error: `해당 기간에 이미 신청된 연차가 있습니다. (${conflictDesc})` },
+				{ status: 409 },
+			);
+		}
 
 		// 잔여 연차 초과 방지 (대기 중인 신청 포함)
 		const balance = await getUserLeaveBalance(session.user.id);

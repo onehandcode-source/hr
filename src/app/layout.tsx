@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import SessionProvider from '@/components/auth/SessionProvider';
 import ReactQueryProvider from '@/components/providers/ReactQueryProvider';
+import ThemeProvider from '@/components/providers/ThemeProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,14 +16,16 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="ko">
+		<html lang="ko" suppressHydrationWarning>
 			<body>
-				<SessionProvider>
-					<ReactQueryProvider>
-						{children}
-						<Toaster richColors position="top-right" />
-					</ReactQueryProvider>
-				</SessionProvider>
+				<ThemeProvider>
+					<SessionProvider>
+						<ReactQueryProvider>
+							{children}
+							<Toaster richColors position="top-right" />
+						</ReactQueryProvider>
+					</SessionProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	);

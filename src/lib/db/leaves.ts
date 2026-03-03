@@ -147,6 +147,31 @@ export async function updateLeaveRequestStatus(
 	});
 }
 
+export async function checkLeaveOverlap(userId: string, startDate: Date, endDate: Date) {
+	const conflicts = await prisma.annualLeave.findMany({
+		where: {
+			userId,
+			status: { in: ['PENDING', 'APPROVED'] },
+			AND: [
+				{ startDate: { lte: endDate } },
+				{ endDate: { gte: startDate } },
+			],
+		},
+		select: {
+			id: true,
+			startDate: true,
+			endDate: true,
+			leaveType: true,
+			status: true,
+		},
+	});
+
+	return {
+		overlapping: conflicts.length > 0,
+		conflicts,
+	};
+}
+
 export async function getUserLeaveBalance(userId: string) {
 	const user = await prisma.user.findUnique({
 		where: { id: userId },

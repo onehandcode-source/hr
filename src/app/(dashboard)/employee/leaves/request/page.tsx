@@ -58,6 +58,16 @@ export default function LeaveRequestPage() {
 		enabled: !!session?.user?.id,
 	});
 
+	const { data: existingLeaves = [] } = useQuery({
+		queryKey: ['leaves', session?.user?.id],
+		queryFn: async () => {
+			const res = await fetch('/api/leaves');
+			if (!res.ok) throw new Error('Failed to fetch leaves');
+			return res.json();
+		},
+		enabled: !!session?.user?.id,
+	});
+
 	const createMutation = useMutation({
 		mutationFn: async (data: any) => {
 			const res = await fetch('/api/leaves', {
@@ -96,6 +106,23 @@ export default function LeaveRequestPage() {
 	const effectiveRemaining = leaveBalance?.effectiveRemaining ?? leaveBalance?.remainingLeaves ?? Infinity;
 	const isExceeding = !!leaveBalance && calculatedDays > 0 && calculatedDays > effectiveRemaining;
 
+	// 날짜 중복 검사 (PENDING + APPROVED 상태의 기존 연차와 비교)
+	const conflictingLeave = (() => {
+		if (!startDate) return null;
+		const finalEnd = isHalfDay ? startDate : endDate;
+		if (!finalEnd) return null;
+		const newStart = dayjs(startDate).startOf('day');
+		const newEnd = dayjs(finalEnd).startOf('day');
+		return (existingLeaves as any[]).find((leave) => {
+			if (leave.status !== 'PENDING' && leave.status !== 'APPROVED') return false;
+			const s = dayjs(leave.startDate).startOf('day');
+			const e = dayjs(leave.endDate).startOf('day');
+			return newStart.valueOf() <= e.valueOf() && newEnd.valueOf() >= s.valueOf();
+		}) ?? null;
+	})();
+
+	const isOverlapping = !!conflictingLeave;
+
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!startDate || (!isHalfDay && !endDate)) {
@@ -108,6 +135,11 @@ export default function LeaveRequestPage() {
 		}
 		if (!reason.trim()) {
 			toast.error('사유를 입력해주세요.');
+			return;
+		}
+		if (isOverlapping) {
+			const fmt = (d: string) => dayjs(d).format('M월 D일');
+			toast.error(`해당 기간에 이미 신청된 연차가 있습니다. (${fmt(conflictingLeave.startDate)}~${fmt(conflictingLeave.endDate)})`);
 			return;
 		}
 		if (isExceeding) {
@@ -123,6 +155,8 @@ export default function LeaveRequestPage() {
 			leaveType,
 		});
 	};
+
+	const previewError = isOverlapping || isExceeding;
 
 	return (
 		<PageTransition>
@@ -214,10 +248,15 @@ export default function LeaveRequestPage() {
 
 							{/* 신청 일수 미리보기 */}
 							{startDate && (isHalfDay || endDate) && (
-								<Alert className={isExceeding ? 'border-destructive bg-destructive/5' : ''}>
-									<AlertDescription className={isExceeding ? 'text-destructive' : ''}>
+								<Alert className={previewError ? 'border-destructive bg-destructive/5' : ''}>
+									<AlertDescription className={previewError ? 'text-destructive' : ''}>
 										신청 일수: <strong>{calculatedDays}일</strong>
-										{isExceeding && (
+										{isOverlapping && conflictingLeave && (
+											<span className="ml-2 font-medium">
+												— 기간 중복 ({dayjs(conflictingLeave.startDate).format('M/D')}~{dayjs(conflictingLeave.endDate).format('M/D')} 이미 신청됨)
+											</span>
+										)}
+										{!isOverlapping && isExceeding && (
 											<span className="ml-2 font-medium">
 												— 잔여 연차 초과 (신청 가능: {effectiveRemaining}일)
 											</span>
@@ -239,7 +278,7 @@ export default function LeaveRequestPage() {
 								/>
 							</div>
 
-							<Button type="submit" size="lg" disabled={createMutation.isPending || isExceeding}>
+							<Button type="submit" size="lg" disabled={createMutation.isPending || isOverlapping || isExceeding}>
 								{createMutation.isPending ? '신청 중...' : '신청하기'}
 							</Button>
 						</form>
