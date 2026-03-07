@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import BottomNav from './BottomNav';
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
 	const [mobileOpen, setMobileOpen] = useState(false);
@@ -11,10 +12,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 		<div className="min-h-screen bg-background">
 			<Navbar onMenuClick={() => setMobileOpen(true)} />
 			<Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
-			<main className="sm:ml-60 p-4 sm:p-6 min-h-screen min-w-0">
+			<main className="sm:ml-60 p-4 sm:p-6 min-h-screen min-w-0 pb-20 sm:pb-6">
 				<div className="h-14 sm:h-16" />
 				{children}
 			</main>
+			<BottomNav />
 		</div>
 	);
 }

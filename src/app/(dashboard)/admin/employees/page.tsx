@@ -28,10 +28,12 @@ import {
 import { useIsMobile } from '@/hooks/useIsMobile';
 import dayjs from 'dayjs';
 import PageTransition from '@/components/common/PageTransition';
-import Loading from '@/components/common/Loading';
+import EmptyState from '@/components/common/EmptyState';
+import { TableSkeleton, CardListSkeleton } from '@/components/common/Skeletons';
 
 interface Employee {
 	id: string;
+	loginId: string;
 	name: string;
 	email: string;
 	department: string | null;
@@ -43,6 +45,7 @@ interface Employee {
 }
 
 interface EmployeeForm {
+	loginId: string;
 	name: string;
 	email: string;
 	password: string;
@@ -53,6 +56,7 @@ interface EmployeeForm {
 }
 
 const emptyForm: EmployeeForm = {
+	loginId: '',
 	name: '',
 	email: '',
 	password: '',
@@ -127,8 +131,12 @@ export default function EmployeesPage() {
 	});
 
 	const handleAdd = () => {
-		if (!form.name || !form.email || !form.password) {
-			toast.error('이름, 이메일, 비밀번호는 필수입니다.');
+		if (!form.loginId || !form.name || !form.email || !form.password) {
+			toast.error('아이디, 이름, 이메일, 비밀번호는 필수입니다.');
+			return;
+		}
+		if (form.password.length < 8) {
+			toast.error('비밀번호는 8자 이상이어야 합니다.');
 			return;
 		}
 		createMutation.mutate(form);
@@ -153,8 +161,6 @@ export default function EmployeesPage() {
 	const handleToggleActive = (emp: Employee) => {
 		updateMutation.mutate({ id: emp.id, data: { isActive: !emp.isActive } });
 	};
-
-	if (isLoading) return <Loading />;
 
 	return (
 		<PageTransition>
@@ -184,21 +190,32 @@ export default function EmployeesPage() {
 
 				{isMobile ? (
 					/* 모바일: 카드 */
-					<div className="flex flex-col gap-3">
-						{!employees || employees.length === 0 ? (
-							<Card>
-								<CardContent className="p-8 text-center text-sm text-muted-foreground">
-									직원이 없습니다.
-								</CardContent>
-							</Card>
-						) : (
-							employees.map((emp) => (
+					isLoading ? (
+						<CardListSkeleton count={4} />
+					) : !employees || employees.length === 0 ? (
+						<Card>
+							<EmptyState
+								icon={Users}
+								title="등록된 직원이 없습니다"
+								description="직원 추가 버튼을 눌러 첫 번째 직원을 등록하세요"
+								action={
+									<Button size="sm" onClick={() => setAddOpen(true)}>
+										<Plus className="h-4 w-4 mr-1" />
+										직원 추가
+									</Button>
+								}
+							/>
+						</Card>
+					) : (
+						<div className="flex flex-col gap-3">
+							{employees.map((emp) => (
 								<Card key={emp.id} className={`overflow-hidden ${emp.isActive ? '' : 'opacity-60'}`}>
 									<div className={`h-1 ${emp.isActive ? 'bg-primary' : 'bg-slate-300'}`} />
 									<CardContent className="p-4">
 										<div className="flex justify-between items-start">
 											<div>
 												<p className="font-semibold">{emp.name}</p>
+												<p className="text-xs text-muted-foreground">@{emp.loginId}</p>
 												<p className="text-sm text-muted-foreground">
 													{emp.department || '-'} · {emp.position || '-'}
 												</p>
@@ -235,9 +252,9 @@ export default function EmployeesPage() {
 										</div>
 									</CardContent>
 								</Card>
-							))
-						)}
-					</div>
+							))}
+						</div>
+					)
 				) : (
 					/* 데스크탑: 테이블 */
 					<Card>
@@ -253,30 +270,37 @@ export default function EmployeesPage() {
 							)}
 						</CardHeader>
 						<CardContent className="p-0">
-							<Table>
-								<TableHeader>
-									<TableRow className="bg-muted/40 hover:bg-muted/40">
-										<TableHead>이름</TableHead>
-										<TableHead>이메일</TableHead>
-										<TableHead>부서</TableHead>
-										<TableHead>직급</TableHead>
-										<TableHead>입사일</TableHead>
-										<TableHead>연차 (총/사용/잔여)</TableHead>
-										<TableHead>상태</TableHead>
-										<TableHead>작업</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{!employees || employees.length === 0 ? (
-										<TableRow>
-											<TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-												직원이 없습니다.
-											</TableCell>
+							{isLoading ? (
+								<TableSkeleton
+									headers={['이름', '이메일', '부서', '직급', '입사일', '연차', '상태', '작업']}
+								/>
+							) : !employees || employees.length === 0 ? (
+								<EmptyState
+									icon={Users}
+									title="등록된 직원이 없습니다"
+									description="직원 추가 버튼을 눌러 첫 번째 직원을 등록하세요"
+								/>
+							) : (
+								<Table>
+									<TableHeader>
+										<TableRow className="bg-muted/40 hover:bg-muted/40">
+											<TableHead>이름</TableHead>
+											<TableHead>이메일</TableHead>
+											<TableHead>부서</TableHead>
+											<TableHead>직급</TableHead>
+											<TableHead>입사일</TableHead>
+											<TableHead>연차 (총/사용/잔여)</TableHead>
+											<TableHead>상태</TableHead>
+											<TableHead>작업</TableHead>
 										</TableRow>
-									) : (
-										employees.map((emp) => (
+									</TableHeader>
+									<TableBody>
+										{employees.map((emp) => (
 											<TableRow key={emp.id} className={emp.isActive ? '' : 'opacity-60'}>
-												<TableCell className="font-medium">{emp.name}</TableCell>
+												<TableCell>
+													<p className="font-medium">{emp.name}</p>
+													<p className="text-xs text-muted-foreground">@{emp.loginId}</p>
+												</TableCell>
 												<TableCell className="text-muted-foreground">{emp.email}</TableCell>
 												<TableCell>{emp.department || '-'}</TableCell>
 												<TableCell>{emp.position || '-'}</TableCell>
@@ -316,33 +340,35 @@ export default function EmployeesPage() {
 													</div>
 												</TableCell>
 											</TableRow>
-										))
-									)}
-								</TableBody>
-							</Table>
+										))}
+									</TableBody>
+								</Table>
+							)}
 						</CardContent>
 					</Card>
 				)}
 
 				{/* 직원 추가 Dialog */}
 				<Dialog open={addOpen} onOpenChange={setAddOpen}>
-					<DialogContent className="sm:max-w-md">
+					<DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
 						<DialogHeader>
 							<DialogTitle>직원 추가</DialogTitle>
 						</DialogHeader>
 						<div className="flex flex-col gap-3 py-2">
 							{[
-								{ id: 'name', label: '이름 *', type: 'text', key: 'name' as keyof EmployeeForm },
-								{ id: 'email', label: '이메일 *', type: 'email', key: 'email' as keyof EmployeeForm },
-								{ id: 'password', label: '비밀번호 * (8자 이상)', type: 'password', key: 'password' as keyof EmployeeForm },
-								{ id: 'department', label: '부서', type: 'text', key: 'department' as keyof EmployeeForm },
-								{ id: 'position', label: '직급', type: 'text', key: 'position' as keyof EmployeeForm },
-							].map(({ id, label, type, key }) => (
+								{ id: 'loginId', label: '아이디 *', type: 'text', key: 'loginId' as keyof EmployeeForm, placeholder: '로그인에 사용할 아이디' },
+								{ id: 'name', label: '이름 *', type: 'text', key: 'name' as keyof EmployeeForm, placeholder: '' },
+								{ id: 'email', label: '이메일 *', type: 'email', key: 'email' as keyof EmployeeForm, placeholder: '' },
+								{ id: 'password', label: '비밀번호 * (8자 이상)', type: 'password', key: 'password' as keyof EmployeeForm, placeholder: '' },
+								{ id: 'department', label: '부서', type: 'text', key: 'department' as keyof EmployeeForm, placeholder: '' },
+								{ id: 'position', label: '직급', type: 'text', key: 'position' as keyof EmployeeForm, placeholder: '' },
+							].map(({ id, label, type, key, placeholder }) => (
 								<div key={id} className="space-y-1.5">
 									<Label htmlFor={id}>{label}</Label>
 									<Input
 										id={id}
 										type={type}
+										placeholder={placeholder}
 										value={form[key]}
 										onChange={(e) => setForm({ ...form, [key]: e.target.value })}
 									/>
@@ -362,6 +388,7 @@ export default function EmployeesPage() {
 								<Input
 									id="totalLeaves"
 									type="number"
+									min={0}
 									value={form.totalLeaves}
 									onChange={(e) => setForm({ ...form, totalLeaves: e.target.value })}
 								/>
@@ -413,6 +440,7 @@ export default function EmployeesPage() {
 								<Input
 									id="editTotalLeaves"
 									type="number"
+									min={0}
 									value={editForm.totalLeaves ?? ''}
 									onChange={(e) => setEditForm({ ...editForm, totalLeaves: e.target.value })}
 								/>
