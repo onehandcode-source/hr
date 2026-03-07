@@ -27,11 +27,16 @@ export const authOptions: NextAuthOptions = {
 						role: true,
 						department: true,
 						position: true,
+						isActive: true,
 					},
 				});
 
 				if (!user) {
 					throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
+				}
+
+				if (!user.isActive) {
+					throw new Error('비활성화된 계정입니다. 관리자에게 문의하세요.');
 				}
 
 				const isValid = await verifyPassword(credentials.password, user.password);

@@ -19,12 +19,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 		const body = await request.json();
 		const { name, department, position, hireDate, totalLeaves, isActive } = body;
 
+		if (totalLeaves !== undefined) {
+			const parsed = parseInt(totalLeaves, 10);
+			if (isNaN(parsed) || parsed < 0) {
+				return NextResponse.json({ error: '연차 일수는 0 이상의 정수여야 합니다' }, { status: 400 });
+			}
+		}
+
+		if (hireDate !== undefined && isNaN(new Date(hireDate).getTime())) {
+			return NextResponse.json({ error: '올바른 입사일을 입력해주세요' }, { status: 400 });
+		}
+
 		const user = await updateUser(id, {
 			...(name !== undefined && { name }),
 			...(department !== undefined && { department }),
 			...(position !== undefined && { position }),
 			...(hireDate !== undefined && { hireDate: new Date(hireDate) }),
-			...(totalLeaves !== undefined && { totalLeaves: parseInt(totalLeaves) }),
+			...(totalLeaves !== undefined && { totalLeaves: parseInt(totalLeaves, 10) }),
 			...(isActive !== undefined && { isActive }),
 		});
 

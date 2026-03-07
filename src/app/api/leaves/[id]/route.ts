@@ -52,11 +52,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 		}
 
 		return NextResponse.json(leave);
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error updating leave status:', error);
+		const knownErrors = ['이미 승인', '이미 거부', '취소된 신청', '찾을 수 없습니다'];
+		const isKnown = knownErrors.some((msg) => error?.message?.includes(msg));
 		return NextResponse.json(
-			{ error: '연차 상태 업데이트 중 오류가 발생했습니다' },
-			{ status: 500 },
+			{ error: error?.message || '연차 상태 업데이트 중 오류가 발생했습니다' },
+			{ status: isKnown ? 400 : 500 },
 		);
 	}
 }
