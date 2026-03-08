@@ -55,6 +55,16 @@ export async function POST(request: NextRequest) {
 
 		const parsedDays = parseFloat(days);
 
+		if (isNaN(parsedDays) || parsedDays <= 0) {
+			return NextResponse.json({ error: '휴가 일수는 0보다 커야 합니다' }, { status: 400 });
+		}
+
+		const start = new Date(startDate);
+		const end = new Date(endDate);
+		if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+			return NextResponse.json({ error: '올바른 날짜 범위를 입력해주세요' }, { status: 400 });
+		}
+
 		// 날짜 중복 확인 (PENDING + APPROVED)
 		const overlap = await checkLeaveOverlap(
 			session.user.id,

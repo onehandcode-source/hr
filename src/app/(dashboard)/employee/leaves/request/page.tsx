@@ -1,20 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
-import { CalendarPlus } from 'lucide-react';
+import { CalendarPlus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 import { calculateWorkdays } from '@/lib/utils/date';
+import { getHolidaysInRange } from '@/lib/utils/holidays';
 import PageTransition from '@/components/common/PageTransition';
 
 type LeaveType = 'ANNUAL' | 'HALF_AM' | 'HALF_PM' | 'SICK' | 'SPECIAL';
@@ -106,6 +108,13 @@ export default function LeaveRequestPage() {
 	const effectiveRemaining = leaveBalance?.effectiveRemaining ?? leaveBalance?.remainingLeaves ?? Infinity;
 	const isExceeding = !!leaveBalance && calculatedDays > 0 && calculatedDays > effectiveRemaining;
 
+	// 선택 기간 내 공휴일 목록
+	const holidaysInRange = useMemo(() => {
+		if (!startDate || isHalfDay) return [];
+		const finalEnd = endDate || startDate;
+		return getHolidaysInRange(dayjs(startDate).toDate(), dayjs(finalEnd).toDate());
+	}, [startDate, endDate, isHalfDay]);
+
 	// 날짜 중복 검사 (PENDING + APPROVED 상태의 기존 연차와 비교)
 	const conflictingLeave = (() => {
 		if (!startDate) return null;
@@ -157,6 +166,7 @@ export default function LeaveRequestPage() {
 	};
 
 	const previewError = isOverlapping || isExceeding;
+	const hasPreview = startDate && (isHalfDay || endDate);
 
 	return (
 		<PageTransition>
@@ -170,9 +180,9 @@ export default function LeaveRequestPage() {
 				{leaveBalance && (
 					<div className="grid grid-cols-3 gap-3 mb-4">
 						{[
-							{ label: '총 연차', value: leaveBalance.totalLeaves, unit: '일', color: 'bg-indigo-500', iconBg: 'bg-indigo-50', textColor: 'text-indigo-600' },
-							{ label: '사용 연차', value: leaveBalance.usedLeaves, unit: '일', color: 'bg-orange-500', iconBg: 'bg-orange-50', textColor: 'text-orange-600' },
-							{ label: '잔여 연차', value: leaveBalance.remainingLeaves, unit: '일', color: 'bg-emerald-500', iconBg: 'bg-emerald-50', textColor: 'text-emerald-600' },
+							{ label: '총 연차', value: leaveBalance.totalLeaves, unit: '일', color: 'bg-indigo-500', textColor: 'text-indigo-600' },
+							{ label: '사용 연차', value: leaveBalance.usedLeaves, unit: '일', color: 'bg-orange-500', textColor: 'text-orange-600' },
+							{ label: '잔여 연차', value: leaveBalance.remainingLeaves, unit: '일', color: 'bg-emerald-500', textColor: 'text-emerald-600' },
 						].map((item) => (
 							<Card key={item.label} className="overflow-hidden">
 								<div className={`h-1 ${item.color}`} />
@@ -247,22 +257,54 @@ export default function LeaveRequestPage() {
 							)}
 
 							{/* 신청 일수 미리보기 */}
-							{startDate && (isHalfDay || endDate) && (
-								<Alert className={previewError ? 'border-destructive bg-destructive/5' : ''}>
-									<AlertDescription className={previewError ? 'text-destructive' : ''}>
-										신청 일수: <strong>{calculatedDays}일</strong>
-										{isOverlapping && conflictingLeave && (
-											<span className="ml-2 font-medium">
-												— 기간 중복 ({dayjs(conflictingLeave.startDate).format('M/D')}~{dayjs(conflictingLeave.endDate).format('M/D')} 이미 신청됨)
-											</span>
-										)}
-										{!isOverlapping && isExceeding && (
-											<span className="ml-2 font-medium">
-												— 잔여 연차 초과 (신청 가능: {effectiveRemaining}일)
-											</span>
-										)}
-									</AlertDescription>
-								</Alert>
+							{hasPreview && (
+								<div className="space-y-2">
+									<Alert className={previewError ? 'border-destructive bg-destructive/5' : 'border-primary/20 bg-primary/5'}>
+										<AlertDescription className={previewError ? 'text-destructive' : ''}>
+											<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+												<span>신청 일수: <strong>{calculatedDays}일</strong></span>
+												{holidaysInRange.length > 0 && !isHalfDay && (
+													<span className="text-muted-foreground text-xs">
+														(공휴일 {holidaysInRange.length}일 제외)
+													</span>
+												)}
+												{isOverlapping && conflictingLeave && (
+													<span className="font-medium text-destructive">
+														— 기간 중복 ({dayjs(conflictingLeave.startDate).format('M/D')}~{dayjs(conflictingLeave.endDate).format('M/D')} 이미 신청됨)
+													</span>
+												)}
+												{!isOverlapping && isExceeding && (
+													<span className="font-medium text-destructive">
+														— 잔여 연차 초과 (신청 가능: {effectiveRemaining}일)
+													</span>
+												)}
+											</div>
+										</AlertDescription>
+									</Alert>
+
+									{/* 공휴일 상세 목록 */}
+									{holidaysInRange.length > 0 && !isHalfDay && (
+										<div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900 px-4 py-3">
+											<div className="flex items-center gap-1.5 mb-2">
+												<Info className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+												<p className="text-xs font-medium text-blue-700 dark:text-blue-400">
+													선택 기간 내 공휴일 {holidaysInRange.length}일 — 연차에서 자동 제외됩니다
+												</p>
+											</div>
+											<div className="flex flex-wrap gap-1.5">
+												{holidaysInRange.map(({ date, name }) => (
+													<Badge
+														key={date}
+														variant="secondary"
+														className="text-xs bg-blue-100 text-blue-800 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-200"
+													>
+														{dayjs(date).format('M월 D일')} {name}
+													</Badge>
+												))}
+											</div>
+										</div>
+									)}
+								</div>
 							)}
 
 							{/* 사유 */}

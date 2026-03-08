@@ -27,7 +27,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { formatDateKorean } from '@/lib/utils/date';
 import PageTransition from '@/components/common/PageTransition';
-import Loading from '@/components/common/Loading';
+import EmptyState from '@/components/common/EmptyState';
+import { TableSkeleton, CardListSkeleton } from '@/components/common/Skeletons';
 
 const LEAVE_TYPE_LABELS: Record<string, string> = {
 	ANNUAL: '연차',
@@ -130,10 +131,6 @@ export default function AdminLeavesPage() {
 		updateMutation.mutate({ id: selectedLeave.id, status: actionType, note: reviewNote });
 	};
 
-	if (isLoading) {
-		return <Loading />;
-	}
-
 	return (
 		<PageTransition>
 			<div>
@@ -144,15 +141,19 @@ export default function AdminLeavesPage() {
 
 				{isMobile ? (
 					/* 모바일: 카드 */
+					isLoading ? (
+						<CardListSkeleton count={3} />
+					) : !leaves || leaves.length === 0 ? (
+						<Card>
+							<EmptyState
+								icon={ClipboardList}
+								title="대기 중인 연차 신청이 없습니다"
+								description="모든 연차 신청이 처리되었습니다"
+							/>
+						</Card>
+					) : (
 					<div className="flex flex-col gap-3">
-						{!leaves || leaves.length === 0 ? (
-							<Card>
-								<CardContent className="p-8 text-center text-sm text-muted-foreground">
-									대기 중인 연차 신청이 없습니다.
-								</CardContent>
-							</Card>
-						) : (
-							leaves.map((leave) => (
+						{leaves.map((leave) => (
 								<Card key={leave.id} className="overflow-hidden">
 									<div className="h-1 bg-amber-400" />
 									<CardContent className="p-4">
@@ -204,9 +205,9 @@ export default function AdminLeavesPage() {
 										)}
 									</CardContent>
 								</Card>
-							))
-						)}
+						))}
 					</div>
+					)
 				) : (
 					/* 데스크탑: 테이블 */
 					<Card>
@@ -222,6 +223,17 @@ export default function AdminLeavesPage() {
 							)}
 						</CardHeader>
 						<CardContent className="p-0">
+							{isLoading ? (
+								<TableSkeleton
+									headers={['직원명', '부서/직급', '종류', '시작일', '종료일', '일수', '사유', '상태', '작업']}
+								/>
+							) : !leaves || leaves.length === 0 ? (
+								<EmptyState
+									icon={ClipboardList}
+									title="대기 중인 연차 신청이 없습니다"
+									description="모든 연차 신청이 처리되었습니다"
+								/>
+							) : (
 							<Table>
 								<TableHeader>
 									<TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -237,14 +249,7 @@ export default function AdminLeavesPage() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{!leaves || leaves.length === 0 ? (
-										<TableRow>
-											<TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-												대기 중인 연차 신청이 없습니다.
-											</TableCell>
-										</TableRow>
-									) : (
-										leaves.map((leave) => (
+									{leaves.map((leave) => (
 											<TableRow key={leave.id}>
 												<TableCell className="font-medium">{leave.user.name}</TableCell>
 												<TableCell className="text-muted-foreground">
@@ -287,10 +292,10 @@ export default function AdminLeavesPage() {
 													)}
 												</TableCell>
 											</TableRow>
-										))
-									)}
+									))}
 								</TableBody>
 							</Table>
+							)}
 						</CardContent>
 					</Card>
 				)}

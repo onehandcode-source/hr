@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 import { CalendarDays, List, Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { HOLIDAY_MAP } from '@/lib/utils/holidays';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
 	Table,
@@ -116,6 +117,29 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 
 	const deptColorMap = useMemo(() => buildDeptColorMap(leaves), [leaves]);
 
+	// 공휴일 배경 이벤트 (현재 월 ±2개월 범위 생성)
+	const holidayEvents = useMemo(() => {
+		const center = dayjs(calendarDate);
+		const rangeStart = center.subtract(2, 'month').startOf('month');
+		const rangeEnd = center.add(2, 'month').endOf('month');
+		const result = [];
+		let cur = rangeStart;
+		while (cur.isBefore(rangeEnd)) {
+			const dateStr = cur.format('YYYY-MM-DD');
+			if (HOLIDAY_MAP[dateStr]) {
+				result.push({
+					id: `holiday-${dateStr}`,
+					title: HOLIDAY_MAP[dateStr],
+					start: cur.toDate(),
+					end: cur.add(1, 'day').toDate(),
+					isHoliday: true,
+				});
+			}
+			cur = cur.add(1, 'day');
+		}
+		return result;
+	}, [calendarDate]);
+
 	const events: CalendarEvent[] = useMemo(
 		() =>
 			leaves.map((leave) => ({
@@ -152,6 +176,19 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 				opacity: isSelected ? 1 : 0.85,
 			},
 		};
+	};
+
+	// 공휴일 날짜 셀 스타일
+	const dayCellStyleGetter = (date: Date) => {
+		const dateStr = dayjs(date).format('YYYY-MM-DD');
+		if (HOLIDAY_MAP[dateStr]) {
+			return {
+				style: {
+					backgroundColor: 'rgba(239, 68, 68, 0.06)',
+				},
+			};
+		}
+		return {};
 	};
 
 	const handleCalendarEventSelect = (event: CalendarEvent) => {
@@ -191,6 +228,7 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 						<Calendar
 							localizer={localizer}
 							events={events}
+							backgroundEvents={holidayEvents}
 							startAccessor="start"
 							endAccessor="end"
 							date={calendarDate}
@@ -200,6 +238,7 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 							messages={CALENDAR_MESSAGES}
 							views={availableViews}
 							eventPropGetter={eventStyleGetter}
+							dayPropGetter={dayCellStyleGetter}
 							onSelectEvent={handleCalendarEventSelect}
 							style={{ height: '100%' }}
 							popup

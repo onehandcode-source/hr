@@ -115,26 +115,39 @@ export async function updateLeaveRequestStatus(
 	reviewedBy: string,
 	reviewNote?: string,
 ) {
-	// 승인인 경우 사용자의 usedLeaves 업데이트
-	if (status === 'APPROVED') {
-		const leave = await prisma.annualLeave.findUnique({
-			where: { id },
-		});
+	const leave = await prisma.annualLeave.findUnique({ where: { id } });
 
-		if (leave) {
-			await prisma.user.update({
-				where: { id: leave.userId },
-				data: {
-					usedLeaves: {
-						increment: leave.days,
-					},
-				},
-			});
-		}
+	if (!leave) {
+		throw new Error('연차 신청을 찾을 수 없습니다');
 	}
 
-	// 거부에서 승인으로 변경하는 경우 usedLeaves 복구 로직 필요
-	// (간단한 구현을 위해 생략, 실제로는 이전 상태 확인 필요)
+	// 이미 동일한 상태이면 중복 처리 방지
+	if (leave.status === status) {
+		throw new Error(`이미 ${status === 'APPROVED' ? '승인' : '거부'}된 신청입니다`);
+	}
+
+	// CANCELLED 상태는 관리자가 변경 불가
+	if (leave.status === 'CANCELLED') {
+		throw new Error('취소된 신청은 상태를 변경할 수 없습니다');
+	}
+
+	// usedLeaves 조정: 이전 상태 → 새 상태에 따라 결정
+	const wasApproved = leave.status === 'APPROVED';
+	const willBeApproved = status === 'APPROVED';
+
+	if (!wasApproved && willBeApproved) {
+		// PENDING/REJECTED → APPROVED: usedLeaves 차감
+		await prisma.user.update({
+			where: { id: leave.userId },
+			data: { usedLeaves: { increment: leave.days } },
+		});
+	} else if (wasApproved && !willBeApproved) {
+		// APPROVED → REJECTED: usedLeaves 복구
+		await prisma.user.update({
+			where: { id: leave.userId },
+			data: { usedLeaves: { decrement: leave.days } },
+		});
+	}
 
 	return prisma.annualLeave.update({
 		where: { id },
