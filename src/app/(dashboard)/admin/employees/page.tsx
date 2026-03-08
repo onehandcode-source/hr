@@ -72,6 +72,7 @@ export default function EmployeesPage() {
 	const [addOpen, setAddOpen] = useState(false);
 	const [editTarget, setEditTarget] = useState<Employee | null>(null);
 	const [form, setForm] = useState<EmployeeForm>(emptyForm);
+	const [formErrors, setFormErrors] = useState<Partial<Record<keyof EmployeeForm, string>>>({});
 	const [editForm, setEditForm] = useState<Partial<EmployeeForm>>({});
 
 	const isMobile = useIsMobile();
@@ -104,6 +105,7 @@ export default function EmployeesPage() {
 			toast.success('직원이 추가되었습니다.');
 			setAddOpen(false);
 			setForm(emptyForm);
+			setFormErrors({});
 		},
 		onError: (err: Error) => toast.error(err.message),
 	});
@@ -131,14 +133,18 @@ export default function EmployeesPage() {
 	});
 
 	const handleAdd = () => {
-		if (!form.loginId || !form.name || !form.email || !form.password) {
-			toast.error('아이디, 이름, 이메일, 비밀번호는 필수입니다.');
+		const errors: Partial<Record<keyof EmployeeForm, string>> = {};
+		if (!form.loginId.trim()) errors.loginId = '아이디를 입력해주세요';
+		if (!form.name.trim()) errors.name = '이름을 입력해주세요';
+		if (!form.email.trim()) errors.email = '이메일을 입력해주세요';
+		if (!form.password) errors.password = '비밀번호를 입력해주세요';
+		else if (form.password.length < 8) errors.password = '비밀번호는 8자 이상이어야 합니다';
+
+		if (Object.keys(errors).length > 0) {
+			setFormErrors(errors);
 			return;
 		}
-		if (form.password.length < 8) {
-			toast.error('비밀번호는 8자 이상이어야 합니다.');
-			return;
-		}
+		setFormErrors({});
 		createMutation.mutate(form);
 	};
 
@@ -349,7 +355,7 @@ export default function EmployeesPage() {
 				)}
 
 				{/* 직원 추가 Dialog */}
-				<Dialog open={addOpen} onOpenChange={setAddOpen}>
+				<Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setForm(emptyForm); setFormErrors({}); } }}>
 					<DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
 						<DialogHeader>
 							<DialogTitle>직원 추가</DialogTitle>
@@ -370,8 +376,15 @@ export default function EmployeesPage() {
 										type={type}
 										placeholder={placeholder}
 										value={form[key]}
-										onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+										onChange={(e) => {
+											setForm((prev) => ({ ...prev, [key]: e.target.value }));
+											if (formErrors[key]) setFormErrors((prev) => ({ ...prev, [key]: undefined }));
+										}}
+										className={formErrors[key] ? 'border-destructive focus-visible:ring-destructive' : ''}
 									/>
+									{formErrors[key] && (
+										<p className="text-xs text-destructive">{formErrors[key]}</p>
+									)}
 								</div>
 							))}
 							<div className="space-y-1.5">
