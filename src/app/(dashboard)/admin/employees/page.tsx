@@ -133,17 +133,21 @@ export default function EmployeesPage() {
 	});
 
 	const handleAdd = () => {
-		const errors: Partial<Record<keyof EmployeeForm, string>> = {};
-		if (!form.loginId.trim()) errors.loginId = '아이디를 입력해주세요';
-		if (!form.name.trim()) errors.name = '이름을 입력해주세요';
-		if (!form.email.trim()) errors.email = '이메일을 입력해주세요';
-		if (!form.password) errors.password = '비밀번호를 입력해주세요';
-		else if (form.password.length < 8) errors.password = '비밀번호는 8자 이상이어야 합니다';
+		const checks: Array<{ key: keyof EmployeeForm; id: string; message: string; condition: boolean }> = [
+			{ key: 'loginId', id: 'loginId', message: '아이디를 입력해주세요', condition: !form.loginId.trim() },
+			{ key: 'name', id: 'name', message: '이름을 입력해주세요', condition: !form.name.trim() },
+			{ key: 'email', id: 'email', message: '이메일을 입력해주세요', condition: !form.email.trim() },
+			{ key: 'password', id: 'password', message: !form.password ? '비밀번호를 입력해주세요' : '비밀번호는 8자 이상이어야 합니다', condition: !form.password || form.password.length < 8 },
+		];
 
-		if (Object.keys(errors).length > 0) {
-			setFormErrors(errors);
-			return;
+		for (const { key, id, message, condition } of checks) {
+			if (condition) {
+				setFormErrors({ [key]: message });
+				document.getElementById(id)?.focus();
+				return;
+			}
 		}
+
 		setFormErrors({});
 		createMutation.mutate(form);
 	};
