@@ -44,6 +44,15 @@ export default function NotificationBell() {
 		},
 	});
 
+	const readAllMutation = useMutation({
+		mutationFn: async () => {
+			await fetch('/api/notifications/read-all', { method: 'PATCH' });
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['notifications'] });
+		},
+	});
+
 	const unreadCount = data?.unreadCount ?? 0;
 	const notifications = data?.notifications ?? [];
 
@@ -58,10 +67,19 @@ export default function NotificationBell() {
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="end" className="w-80 sm:w-96 p-0 max-h-[480px] overflow-hidden flex flex-col">
-				<div className="px-4 py-3 border-b border-slate-100">
+				<div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
 					<p className="font-semibold text-sm">
 						알림 {unreadCount > 0 && <span className="text-primary">({unreadCount}개 미읽음)</span>}
 					</p>
+					{unreadCount > 0 && (
+						<button
+							onClick={() => readAllMutation.mutate()}
+							disabled={readAllMutation.isPending}
+							className="text-xs text-primary hover:underline disabled:opacity-50"
+						>
+							전체 읽음
+						</button>
+					)}
 				</div>
 
 				{notifications.length === 0 ? (
