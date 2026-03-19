@@ -162,7 +162,7 @@ export default function LeaveCalendarView({ leaves, title }: Props) {
 	}, [leaves, calendarDate]);
 
 	const eventStyleGetter = (event: CalendarEvent) => {
-		const color = deptColorMap[event.resource.user.department] ?? '#1976d2';
+		const color = deptColorMap[event.resource?.user.department ?? ''] ?? '#1976d2';
 		const isSelected = event.id === selectedId;
 		return {
 			style: {
