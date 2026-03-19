@@ -38,7 +38,7 @@ interface CalendarEvent {
 	title: string;
 	start: Date;
 	end: Date;
-	resource: LeaveEvent;
+	resource?: LeaveEvent;
 }
 
 const CALENDAR_MESSAGES = {
